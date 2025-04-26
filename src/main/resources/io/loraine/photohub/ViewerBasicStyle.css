@@ -1,0 +1,288 @@
+/* 文件树背景 */
+.tree-view {
+    -fx-background-color: #ebf4f7;
+    -fx-border-color: transparent;
+    -fx-border-radius: 0;
+    -fx-padding: 5px;
+}
+
+/* 树项通用样式 */
+.tree-cell {
+    -fx-background-color: transparent;
+    -fx-padding: 5px 10px;
+    -fx-font-size: 14px;
+    -fx-text-fill: #495057;
+}
+
+
+/* 选中项样式 */
+.tree-cell:selected {
+    -fx-background-color: #a1efff;
+    -fx-text-fill: #001f25;
+    -fx-background-radius: 14;
+    -fx-background-insets: 2px;
+}
+
+/* 展开/折叠箭头颜色 */
+.tree-cell > .tree-disclosure-node > .arrow {
+    -fx-background-color: #001f25;
+}
+
+/* 选中时的箭头颜色 */
+.tree-cell:selected > .tree-disclosure-node > .arrow {
+    -fx-background-color: #001f25;
+}
+
+/* 主容器样式 */
+.tile-pane {
+    -fx-alignment: top-center;
+    -fx-background-color: #f5fafc;
+}
+
+/* 文件项基础样式 */
+.file-item {
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-border-width: 4;
+    -fx-border-color: transparent;
+    -fx-padding: 5;
+    -fx-cursor: hand;
+}
+
+/* 悬停效果 */
+.file-item:hover {
+    -fx-border-radius: 10;
+    -fx-border-color: #cdf0f7;
+}
+
+/* 选中状态 */
+.file-item.selected {
+    -fx-background-color: #cdf0f7;
+    -fx-border-radius: 10;
+    -fx-border-color: transparent;
+}
+
+/* 文件名标签 */
+.file-item .label {
+    -fx-text-fill: #333;
+    -fx-font-size: 12px;
+    -fx-font-weight: normal;
+}
+
+/* 选中样式 */
+.file-item.selected .label {
+    -fx-text-fill: #001f25;
+}
+
+/* 文件浏览器 */
+.tile-pane {
+    -fx-alignment: top-left;
+    -fx-tile-alignment: top-left;
+    -fx-padding: 10 0 10 10;
+}
+
+/* 顶栏 */
+.top-hbox {
+    -fx-background-color: #e4f2f7;
+}
+
+/* Main Scroll Pane */
+.main-scroll-pane {
+    -fx-background: #f5fafc;
+}
+
+/* Selection Pane */
+.selection-pane {
+    -fx-background: #f5fafc;
+}
+
+/* 分隔符 */
+.split-pane-divider {
+    -fx-background-color: transparent;
+}
+
+/* 悬停时显示灰色分隔线 */
+.split-pane-divider:hover {
+    -fx-background-color: #d0d0d0;
+}
+
+.no-border-splitpane {
+    -fx-background-color: transparent;
+}
+
+/* 拖动选择矩形 */
+.selection-rect {
+    -fx-fill: rgba(100, 149, 237, 0.3);
+    -fx-stroke: rgb(100, 149, 237);
+    -fx-visible: false;
+}
+
+/* 滚动条 */
+.scroll-bar:horizontal,
+.scroll-bar:vertical {
+    -fx-background-color: transparent;
+}
+
+/* 滚动条背景 */
+.scroll-bar:horizontal .track,
+.scroll-bar:vertical .track {
+    -fx-background-color: #f0f0f0;
+    -fx-border-color: transparent;
+    -fx-background-radius: 2em;
+    -fx-border-radius: 2em;
+}
+
+/* 滚动条滑块样式 */
+.scroll-bar:horizontal .thumb,
+.scroll-bar:vertical .thumb {
+    -fx-background-color: #c1c1c1;
+    -fx-background-insets: 2, 0, 0;
+    -fx-background-radius: 2em;
+    -fx-border-radius: 2em;
+}
+
+/* 滚动条悬浮样式 */
+.scroll-bar:horizontal .thumb:hover,
+.scroll-bar:vertical .thumb:hover {
+    -fx-background-color: #a8a8a8;
+}
+
+/* 滚动条点击样式 */
+.scroll-bar:horizontal .thumb:pressed,
+.scroll-bar:vertical .thumb:pressed {
+    -fx-background-color: #787878;
+}
+
+/* 滚动条上下方向按钮 */
+.scroll-bar:horizontal .increment-button,
+.scroll-bar:horizontal .decrement-button,
+.scroll-bar:vertical .increment-button,
+.scroll-bar:vertical .decrement-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 0em;
+    -fx-padding: 0;
+}
+
+/* 滚动条上下方向箭头 */
+.scroll-bar:horizontal .increment-arrow,
+.scroll-bar:horizontal .decrement-arrow,
+.scroll-bar:vertical .increment-arrow,
+.scroll-bar:vertical .decrement-arrow {
+    -fx-shape: " ";
+    -fx-padding: 0.15em 0.25em;
+}
+
+/* Corner where vertical and horizontal scroll bars meet */
+.scroll-pane .corner {
+    -fx-background-color: #f0f0f0;
+}
+
+/* Custom style for your specific scroll pane (optional) */
+.main-scroll-pane .scroll-bar:vertical {
+    -fx-background-color: transparent;
+}
+
+.main-scroll-pane .scroll-bar:vertical .track {
+    -fx-background-color: #e6e6e6;
+}
+
+.main-scroll-pane .scroll-bar:vertical .thumb {
+    -fx-background-color: #b8b8b8;
+}
+
+.main-scroll-pane .scroll-bar:vertical .thumb:hover {
+    -fx-background-color: #9e9e9e;
+}
+
+/* --- Styles for Photoview.fxml Below --- */
+
+/* Top HBox in Photoview */
+.top-hbox {
+    -fx-background-color: #e4f2f7;
+}
+
+.jfx-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #495057;
+    -fx-background-radius: 4;
+    -fx-cursor: hand;
+    -fx-padding: 4 6 4 6;
+}
+
+.jfx-button:hover {
+    -fx-background-color: #d8eaf0;
+}
+
+.jfx-button:pressed {
+    -fx-background-color: #cce0e6;
+}
+
+.jfx-button .ikonli-font-icon {
+    -fx-icon-color: #495057;
+}
+
+.jfx-combo-box {
+    -fx-background-color: #ffffff;
+    -jfx-focus-color: #7ecbe8;
+    -jfx-unfocus-color: #b0d9e8;
+    -fx-prompt-text-fill: #666666;
+    -fx-background-radius: 4;
+    -fx-border-radius: 4;
+    -fx-border-color: #b0d9e8;
+    -fx-border-width: 1;
+    /* Removed transition */
+}
+
+.jfx-combo-box:hover {
+    -fx-border-color: #7ecbe8;
+    /* Keep border width consistent on hover, only change color */
+    -fx-border-width: 1;
+}
+
+.jfx-combo-box .arrow {
+    -fx-background-color: #495057;
+}
+
+.jfx-combo-box .list-view {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #b0d9e8;
+    -fx-border-width: 1;
+}
+
+.jfx-combo-box .list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: #495057;
+    -fx-padding: 5 10 5 10;
+    -fx-font-weight: normal;
+}
+
+.jfx-combo-box .list-cell:filled:hover {
+    -fx-background-color: #cce0e6;
+    /* Slightly darker blue background on hover */
+    -fx-text-fill: #001f25;
+    -fx-font-weight: bold;
+    /* Bold text on hover */
+}
+
+.jfx-combo-box .list-cell:filled:selected {
+    -fx-background-color: #a1efff;
+    /* Bright blue for selected item */
+    -fx-text-fill: #001f25;
+    -fx-font-weight: normal;
+}
+
+.status-bar {
+    -fx-background-color: #e4f2f7;
+    -fx-border-color: #b0d9e8 transparent transparent transparent;
+    -fx-border-width: 1;
+    -fx-padding: 3 5 3 5;
+}
+
+.status-bar>.label {
+    -fx-text-fill: #495057;
+    -fx-padding: 0 5 0 5;
+}
+
+.center-stack-pane {
+    -fx-background-color: #ffffff;
+}
