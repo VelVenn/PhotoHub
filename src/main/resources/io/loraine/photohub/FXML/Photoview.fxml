@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import com.jfoenix.controls.JFXButton?>
+<?import com.jfoenix.controls.JFXComboBox?>
+<?import com.jfoenix.controls.JFXSlider?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import org.controlsfx.control.StatusBar?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+<?import org.kordamp.ikonli.javafx.StackedFontIcon?>
+
+<BorderPane fx:id="rootPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="500.0" prefWidth="680.0" stylesheets="@../CSS/ViewerBasicStyle.css" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="io.loraine.photohub.viewer.ViewController">
+  <top>
+    <HBox prefHeight="40.0" prefWidth="600.0" spacing="8.0" styleClass="top-hbox" stylesheets="@../CSS/ViewerBasicStyle.css" BorderPane.alignment="CENTER_LEFT">
+      <children>
+        <JFXComboBox fx:id="sizeCombo" focusColor="#4d4d4d" prefHeight="23.0" prefWidth="65.0" promptText="100%">
+          <HBox.margin>
+            <Insets />
+          </HBox.margin>
+        </JFXComboBox>
+        <JFXButton fx:id="zoomInButton" alignment="CENTER" contentDisplay="GRAPHIC_ONLY">
+          <graphic>
+            <FontIcon iconLiteral="mdomz-zoom_in" iconSize="20" />
+          </graphic>
+        </JFXButton>
+        <JFXSlider fx:id="zoomSlider" blockIncrement="0.01" indicatorPosition="RIGHT" max="5.0" min="0.05" prefHeight="28.0" prefWidth="140.0" styleClass="jfx-slider" stylesheets="@../CSS/ViewerBasicStyle.css" value="1.0" viewOrder="-1.0">
+          <HBox.margin>
+            <Insets />
+          </HBox.margin>
+        </JFXSlider>
+        <JFXButton fx:id="zoomOutButton" alignment="CENTER" contentDisplay="GRAPHIC_ONLY">
+          <graphic>
+            <FontIcon iconLiteral="mdomz-zoom_out" iconSize="20" />
+          </graphic>
+        </JFXButton>
+        <Region fx:id="topFilling" minWidth="0.0" HBox.hgrow="SOMETIMES" />
+        <JFXComboBox fx:id="timeCombo" focusColor="#4d4d4d" prefHeight="29.0" prefWidth="58.0" promptText="1s" />
+        <JFXButton fx:id="playButton" contentDisplay="GRAPHIC_ONLY" ripplerFill="BLACK" styleClass="jfx-button" stylesheets="@../CSS/ViewerBasicStyle.css">
+          <graphic>
+            <StackedFontIcon>
+              <children>
+                <FontIcon fx:id="playIcon" iconLiteral="mdomz-play_circle_filled" iconSize="20" />
+                <FontIcon fx:id="pauseIcon" iconLiteral="mdomz-pause_circle_outline" iconSize="20" visible="false" />
+              </children>
+            </StackedFontIcon>
+          </graphic>
+        </JFXButton>
+        <JFXButton fx:id="prevButton" contentDisplay="GRAPHIC_ONLY">
+          <graphic>
+            <FontIcon iconLiteral="mdoal-keyboard_arrow_left" iconSize="20" />
+          </graphic>
+        </JFXButton>
+        <JFXButton fx:id="nextButton" contentDisplay="GRAPHIC_ONLY">
+          <graphic>
+            <FontIcon iconLiteral="mdoal-keyboard_arrow_right" iconSize="20" />
+          </graphic>
+        </JFXButton>
+      </children>
+      <padding>
+        <Insets bottom="5.0" left="8.0" right="8.0" top="5.0" />
+      </padding>
+    </HBox>
+  </top>
+  <bottom>
+    <StatusBar fx:id="photoStatus" prefHeight="30.0" prefWidth="678.0" text="" BorderPane.alignment="TOP_CENTER">
+      <BorderPane.margin>
+        <Insets />
+      </BorderPane.margin>
+      <padding>
+        <Insets bottom="5.0" left="3.0" right="3.0" top="5.0" />
+      </padding>
+    </StatusBar>
+  </bottom>
+  <center>
+    <StackPane fx:id="centerStackPane" cache="true" cacheHint="SPEED" styleClass="center-stack-pane" stylesheets="@../CSS/ViewerBasicStyle.css" BorderPane.alignment="CENTER">
+      <children>
+        <ImageView fx:id="photoView" cache="true" cacheHint="SPEED" fitHeight="150.0" fitWidth="200.0" pickOnBounds="true" preserveRatio="true">
+          <image>
+            <Image url="@../Default Resources/Lenna.png" />
+          </image>
+        </ImageView>
+      </children>
+    </StackPane>
+  </center>
+</BorderPane>
