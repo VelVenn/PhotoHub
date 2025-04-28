@@ -1,0 +1,134 @@
+/* Top HBox in Photoview */
+.top-hbox {
+    -fx-background-color: #e4f2f7;
+    -fx-border-color: transparent transparent #b0d9e8 transparent;
+    -fx-border-width: 2;
+    -fx-view-order: 1;
+}
+
+.jfx-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #495057;
+    -fx-background-radius: 4;
+    -fx-cursor: hand;
+    -fx-padding: 4 4 4 4;
+}
+
+.jfx-slider {
+    -fx-background-color: transparent;
+    -fx-padding: 4 2 4 2;
+    -fx-background-radius: 4;
+    -jfx-indicator-position: RIGHT;
+}
+
+
+.jfx-slider .track {
+    -fx-background-color: #8d9ca3;
+    -fx-background-radius: 5;
+    -fx-padding: 2;
+}
+
+.jfx-slider .colored-track {
+    -fx-background-color: #7ecbe8;
+    -fx-background-radius: 5;
+}
+
+.jfx-slider .thumb {
+    -fx-background-color: #4d9cbd;
+}
+
+.jfx-slider .animated-thumb {
+    /*-fx-background-color: #4d9cbd;*/
+    /*-fx-view-order: -1;*/
+    /*-fx-background-insets: 0;*/
+    visibility: hidden; /* https://github.com/sshahine/JFoenix/issues/160 */
+}
+
+.jfx-slider:hover .thumb {
+    -fx-background-color: #2d7a9a;
+}
+
+.jfx-slider:pressed .thumb {
+    -fx-background-color: #1d5a7a;
+}
+
+.jfx-button:hover {
+    -fx-background-color: #d8eaf0;
+}
+
+.jfx-button:pressed {
+    -fx-background-color: #cce0e6;
+}
+
+.jfx-button .ikonli-font-icon {
+    -fx-icon-color: #495057;
+}
+
+.jfx-combo-box {
+    -fx-background-color: #ffffff;
+    -jfx-focus-color: #7ecbe8;
+    -jfx-unfocus-color: #b0d9e8;
+    -fx-prompt-text-fill: #666666;
+    -fx-background-radius: 4;
+    -fx-border-radius: 4;
+    -fx-border-color: #b0d9e8;
+    -fx-border-width: 1;
+    /* Removed transition */
+}
+
+.jfx-combo-box:hover {
+    -fx-border-color: #7ecbe8;
+    /* Keep border width consistent on hover, only change color */
+    -fx-border-width: 1;
+}
+
+.jfx-combo-box .arrow {
+    -fx-background-color: #495057;
+}
+
+.jfx-combo-box .list-view {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #b0d9e8;
+    -fx-border-width: 1;
+}
+
+.jfx-combo-box .list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: #495057;
+    -fx-padding: 5 10 5 10;
+    -fx-font-weight: normal;
+}
+
+.jfx-combo-box .list-cell:filled:hover {
+    -fx-background-color: #cce0e6;
+    /* Slightly darker blue background on hover */
+    -fx-text-fill: #001f25;
+    -fx-font-weight: bold;
+    /* Bold text on hover */
+}
+
+.jfx-combo-box .list-cell:filled:selected {
+    -fx-background-color: #a1efff;
+    /* Bright blue for selected item */
+    -fx-text-fill: #001f25;
+    -fx-font-weight: normal;
+}
+
+.status-bar {
+    -fx-background-color: #e4f2f7;
+    -fx-border-color: #b0d9e8 transparent transparent transparent;
+    -fx-border-width: 2;
+    -fx-padding: 5 3 5 3; /* top right bottom left */
+}
+
+.status-bar > .label {
+    -fx-text-fill: #495057;
+    -fx-padding: 5 3 5 3;
+    -fx-alignment: center;
+}
+
+.center-stack-pane {
+    -fx-background-color: #f0f9ff;
+    -fx-view-order: 1;
+}
+
