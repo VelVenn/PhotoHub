@@ -25,6 +25,7 @@ import java.nio.file.Paths;
 import java.nio.file.Files;
 import java.nio.file.attribute.BasicFileAttributes;
 
+import java.time.format.DateTimeFormatter;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 
@@ -41,7 +42,7 @@ import javax.imageio.ImageReader;
 import javax.imageio.stream.ImageInputStream;
 
 import java.io.IOException;
-import java.time.format.DateTimeFormatter;
+import java.nio.file.NoSuchFileException;
 
 public class Photo {
     private static final Set<String> SUPPORTED_TYPES;
@@ -74,7 +75,7 @@ public class Photo {
         }
 
         if (!Files.exists(path)) {
-            throw new IOException("File does not exist: " + path);
+            throw new NoSuchFileException("File does not exist: " + path);
         }
 
         if (Files.isDirectory(path)) {
