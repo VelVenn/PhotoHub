@@ -19,6 +19,7 @@
 package io.loraine.photohub.photo;
 
 import javafx.scene.image.Image;
+import javafx.embed.swing.SwingFXUtils;
 
 import javax.imageio.ImageIO;
 import javax.imageio.stream.ImageInputStream;
@@ -29,6 +30,19 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.Path;
 
+import java.util.Map;
+import java.util.stream.Stream;
+import java.util.stream.Collectors;
+
+import java.util.List;
+import java.util.Arrays;
+import java.util.Set;
+
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+
 public class PhotoLoader {
+   private Map<Photo, Image> cache = new ConcurrentHashMap<>(10);
+
 
 }
