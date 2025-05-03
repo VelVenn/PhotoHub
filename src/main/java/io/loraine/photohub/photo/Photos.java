@@ -163,7 +163,7 @@ public class Photos {
 
     public static void main(String[] args) {
         try {
-            var photos = scanDirectory(Paths.get("D:\\KUN\\desktop\\Tools\\hitomi_downloader_GUI\\hitomi_ExHentai\\[POISON MOTION] 悲鳴 -地下室に囚われた１１人-"));
+            var photos = scanDirectory(Paths.get("path/to/your/directory"));
             System.out.println(photos.size());
             System.out.println("ENDS");
         } catch (IOException e) {
