@@ -280,7 +280,7 @@ class LoaderTester {
             PhotoLoader loader = new PhotoLoader();
 
             Path path = Paths.get(
-                    "D:\\KUN\\desktop\\Tools\\hitomi_downloader_GUI\\hitomi_ExHentai\\[POISON MOTION] 悲鳴 -地下室に囚われた１１人-");
+                    "path/to/your/dir");
 
             var future = loader.scanPathAsync(path);
             if (future != null) {
