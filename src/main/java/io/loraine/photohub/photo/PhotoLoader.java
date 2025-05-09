@@ -104,14 +104,14 @@ public class PhotoLoader {
         }
 
         if (dirTask != null) {
-            dirTask.join(); 
+            dirTask.join();
             return;
         }
 
         synchronized (scanLock) {
             if (isScanDone) {
                 return;
-            } 
+            }
 
             if (dirTask != null) {
                 dirTask.join();
