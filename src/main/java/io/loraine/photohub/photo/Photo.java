@@ -51,8 +51,10 @@ public class Photo {
     private volatile long storageSize = -1;
     private volatile LocalDateTime lastModifiedTime = null;
 
-    private volatile boolean hasLoadedAttributes = false;
-    private volatile boolean hasLoadedDimensions = false;
+    private volatile boolean isAttributesLoaded = false;
+    private volatile boolean isDimensionsLoaded = false;
+
+    private final Object lock = new Object();
 
     static {
         BASIC_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss, ccc");
@@ -69,15 +71,33 @@ public class Photo {
 
         Photos.validateFileExtension(type);
 
-        BasicFileAttributes attributes = Files.readAttributes(path, BasicFileAttributes.class);
-        storageSize = attributes.size();
-        lastModifiedTime = LocalDateTime.ofInstant(
-                attributes.lastModifiedTime().toInstant(), ZoneId.systemDefault());
+        if (!isAttributesLoaded) {
+            synchronized (lock) {
+                if (!isAttributesLoaded) {
+                    try {
+                        loadImageAttributes();
+                        isAttributesLoaded = true;
+                    } catch (IOException e) {
+                        isAttributesLoaded = false;
+                        throw e;
+                    }
+                }
+            }
+        }
 
-        loadImageDimensions();
-
-        hasLoadedAttributes = true;
-        hasLoadedDimensions = true;
+        if (!isDimensionsLoaded) {
+            synchronized (lock) {
+                if (!isDimensionsLoaded) {
+                    try {
+                        loadImageDimensions();
+                        isDimensionsLoaded = true;
+                    } catch (IOException e) {
+                        isDimensionsLoaded = false;
+                        throw e;
+                    }
+                }
+            }
+        }
     }
 
     public Photo(String pathLiteral) throws IOException {
@@ -89,17 +109,34 @@ public class Photo {
         name = photoPath.getFileName().toString();
         type = Photos.getFileExtension(name);
 
-        Photos.validateFileExtension(type);
 
-        BasicFileAttributes attributes = Files.readAttributes(photoPath, BasicFileAttributes.class);
-        storageSize = attributes.size();
-        lastModifiedTime = LocalDateTime.ofInstant(
-                attributes.lastModifiedTime().toInstant(), ZoneId.systemDefault());
+        if (!isAttributesLoaded) {
+            synchronized (lock) {
+                if (!isAttributesLoaded) {
+                    try {
+                        loadImageAttributes();
+                        isAttributesLoaded = true;
+                    } catch (IOException e) {
+                        isAttributesLoaded = false;
+                        throw e;
+                    }
+                }
+            }
+        }
 
-        loadImageDimensions();
-
-        hasLoadedAttributes = true;
-        hasLoadedDimensions = true;
+        if (!isDimensionsLoaded) {
+            synchronized (lock) {
+                if (!isDimensionsLoaded) {
+                    try {
+                        loadImageDimensions();
+                        isDimensionsLoaded = true;
+                    } catch (IOException e) {
+                        isDimensionsLoaded = false;
+                        throw e;
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -156,6 +193,13 @@ public class Photo {
         }
     }
 
+    void loadImageAttributes() throws IOException {
+        BasicFileAttributes attributes = Files.readAttributes(photoPath, BasicFileAttributes.class);
+        storageSize = attributes.size();
+        lastModifiedTime = LocalDateTime.ofInstant(
+                attributes.lastModifiedTime().toInstant(), ZoneId.systemDefault());
+    }
+
     public String getName() {
         return name;
     }
@@ -203,6 +247,10 @@ public class Photo {
     }
 
     public String getLastModifiedTimeLiteral() {
+        if (lastModifiedTime == null) {
+            return "Unknown";
+        }
+
         return lastModifiedTime.format(BASIC_TIME_FORMAT);
     }
 
@@ -214,22 +262,31 @@ public class Photo {
         return Paths.get(parent.toString());
     }
 
-    /** This should only be called by the PhotoLoader class */
-    void setAttributesLoaded() {
-        hasLoadedAttributes = true;
+    public static DateTimeFormatter getTimeFormat() {
+        return BASIC_TIME_FORMAT;
     }
 
     /** This should only be called by the PhotoLoader class */
-    void setDimensionsLoaded() {
-        hasLoadedDimensions = true;
+    void setAttributesLoaded(boolean value) {
+        isAttributesLoaded = value;
+    }
+
+    /** This should only be called by the PhotoLoader class */
+    void setDimensionsLoaded(boolean value) {
+        isDimensionsLoaded = value;
+    }
+
+    /** This should only be called by the PhotoLoader class */
+    Object getLock() {
+        return lock;
     }
 
     public boolean isAttributesLoaded() {
-        return hasLoadedAttributes;
+        return isAttributesLoaded;
     }
 
     public boolean isDimensionsLoaded() {
-        return hasLoadedDimensions;
+        return isDimensionsLoaded;
     }
 
     public static void main(String[] args) {
