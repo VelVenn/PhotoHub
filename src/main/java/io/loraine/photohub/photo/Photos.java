@@ -26,7 +26,6 @@ import java.nio.file.Files;
 
 import java.util.Set;
 import java.util.Arrays;
-import java.util.List;
 
 import java.util.stream.Collectors;
 
@@ -34,7 +33,6 @@ import java.io.IOException;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.InvalidPathException;
-import java.util.stream.Stream;
 
 public class Photos {
     private Photos() {
@@ -125,7 +123,6 @@ public class Photos {
         }
     }
 
-
     /**
      * Check if the given extension is supported
      *
@@ -137,37 +134,5 @@ public class Photos {
 
     public static Set<String> getSupportedTypes() {
         return SUPPORTED_TYPES;
-    }
-
-    public static List<Photo> scanDirectory(Path path) throws IOException {
-        if (path == null) {
-            throw new NullPointerException("Path cannot be null.");
-        }
-        if (!Files.exists(path)) {
-            throw new NoSuchFileException("File does not exist: " + path);
-        }
-        if (!Files.isDirectory(path)) {
-            throw new IllegalArgumentException("Path is not a directory: " + path);
-        }
-        if (!Files.isReadable(path)) {
-            throw new AccessDeniedException("File is not readable: " + path);
-        }
-
-        try (Stream<Path> pathStream = Files.list(path)) {
-            return pathStream
-                    .filter(Photos::isValidPhoto)
-                    .map(p -> new Photo(p, true))
-                    .toList();
-        }
-    }
-
-    public static void main(String[] args) {
-        try {
-            var photos = scanDirectory(Paths.get("path/to/your/directory"));
-            System.out.println(photos.size());
-            System.out.println("ENDS");
-        } catch (IOException e) {
-            System.err.println(e.getClass().getName() + ": " + e.getMessage());
-        }
     }
 }
