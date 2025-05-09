@@ -127,7 +127,7 @@ public class Photo {
     }
 
     // Only read the metadata instead of decoding the image
-    private void loadImageDimensions() throws IOException {
+    void loadImageDimensions() throws IOException {
         try (ImageInputStream in = ImageIO.createImageInputStream(Files.newInputStream(photoPath))) {
             if (in == null) {
                 throw new IOException("Failed to read the bytes in: " + photoPath);
