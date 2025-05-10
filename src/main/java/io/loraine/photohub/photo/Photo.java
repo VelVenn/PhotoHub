@@ -109,7 +109,8 @@ public class Photo {
         name = photoPath.getFileName().toString();
         type = Photos.getFileExtension(name);
 
-
+        Photos.validateFileExtension(type);
+        
         if (!isAttributesLoaded) {
             synchronized (lock) {
                 if (!isAttributesLoaded) {
