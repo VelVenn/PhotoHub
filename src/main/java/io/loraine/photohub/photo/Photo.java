@@ -151,22 +151,11 @@ public class Photo {
 
         name = photoPath.getFileName().toString();
         type = Photos.getFileExtension(name);
-
-        // try {
-        //     BasicFileAttributes attributes = Files.readAttributes(path, BasicFileAttributes.class);
-        //     storageSize = attributes.size();
-        //     lastModifiedTime = LocalDateTime.ofInstant(
-        //             attributes.lastModifiedTime().toInstant(), ZoneId.systemDefault());
-
-        //     loadImageDimensions();
-        // } catch (IOException e) {
-        //     throw new RuntimeException("Photo is not pre-validated: " + path, e);
-        // }
     }
 
     // Only read the metadata instead of decoding the image
     void loadImageDimensions() throws IOException {
-        try (ImageInputStream in = ImageIO.createImageInputStream(Files.newInputStream(photoPath))) {
+        try (ImageInputStream in = ImageIO.createImageInputStream(photoPath.toFile())) {
             if (in == null) {
                 throw new IOException("Failed to read the bytes in: " + photoPath);
             }
@@ -288,6 +277,26 @@ public class Photo {
 
     public boolean isDimensionsLoaded() {
         return isDimensionsLoaded;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+
+        if (obj == null || this.getClass() != obj.getClass()) {
+            return false;
+        }
+
+        Photo other = (Photo) obj;
+
+        return this.photoPath.equals(other.photoPath);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(photoPath, this.getClass());
     }
 
     public static void main(String[] args) {

@@ -19,6 +19,10 @@
 package io.loraine.photohub.photo;
 
 import javafx.scene.image.Image;
+import javafx.embed.swing.SwingFXUtils;
+
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
 
 import java.nio.file.*;
 
@@ -40,7 +44,7 @@ public class PhotoLoader {
     private final ExecutorService executor;
 
     private CompletableFuture<Void> dirTask = null;
-    private Map<Photo, CompletableFuture<Image>> photoTasks = new ConcurrentHashMap<>();
+    private final Map<Photo, CompletableFuture<Image>> photoTasks = new ConcurrentHashMap<>();
 
     private volatile Path dirPath;
     private volatile List<Photo> photoPaths;
@@ -81,7 +85,11 @@ public class PhotoLoader {
                 .initialCapacity(10)
                 .maximumWeight(cacheWeight)
                 .expireAfterAccess(60, TimeUnit.SECONDS)
-                .weigher((Photo p, Image i) -> (int) (i.getHeight() * i.getWidth() * 4))
+                .weigher((Photo p, Image i) -> {
+                    double weight = i.getHeight() * i.getWidth() * 4; // Estimate as ARGB, assume 1 byte per channel
+                    if (weight < 0) return 0;
+                    return weight > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) weight;
+                })
                 .build();
         executor = Executors.newCachedThreadPool();
     }
@@ -91,7 +99,11 @@ public class PhotoLoader {
                 .initialCapacity(10)
                 .maximumWeight(cacheWeight)
                 .expireAfterAccess(60, TimeUnit.SECONDS)
-                .weigher((Photo p, Image i) -> (int) (i.getHeight() * i.getWidth() * 4))
+                .weigher((Photo p, Image i) -> {
+                    double weight = i.getHeight() * i.getWidth() * 4;
+                    if (weight < 0) return 0;
+                    return weight > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) weight;
+                })
                 .build();
         executor = Executors.newFixedThreadPool(executorSize);
     }
@@ -179,38 +191,107 @@ public class PhotoLoader {
         return dirTask;
     }
 
+    public CompletableFuture<Image> loadPhotoAsync(Photo photo) {
+        if (photo == null) {
+            throw new NullPointerException("Photo cannot be null");
+        }
+
+        // Check if photo hit the cache
+        Image cached = cache.getIfPresent(photo);
+        if (cached != null) {
+            return CompletableFuture.completedFuture(cached);
+        }
+
+        // Check if the photo is already in loading
+        CompletableFuture<Image> future = photoTasks.get(photo);
+        if (future != null && !future.isDone()) {
+            return future;
+        }
+
+        CompletableFuture<Image> loadTask = CompletableFuture.supplyAsync(() -> {
+            try {
+                Image image = render(photo);
+                cache.put(photo, image);
+                return image;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }, executor);
+
+        // Ensure that only the first started task is put in the map
+        CompletableFuture<Image> existingTask = photoTasks.putIfAbsent(photo, loadTask);
+        if (existingTask != null) {
+            return existingTask;
+        }
+
+        loadTask.whenComplete((image, ex) -> photoTasks.remove(photo));
+
+        return loadTask;
+    }
+
     public CompletableFuture<Photo> loadPhotoMetadataAsync(Photo photo) {
         if (photo == null) {
             throw new NullPointerException("Photo cannot be null.");
         }
 
+        Photo realPhoto =
+                (isScanDone && photoIndex.containsKey(photo)) ? photoPaths.get(photoIndex.get(photo)) : photo;
 
-        if (photo.isAttributesLoaded() && photo.isDimensionsLoaded()) {
-            return CompletableFuture.completedFuture(photo);
+        if (realPhoto.isAttributesLoaded() && realPhoto.isDimensionsLoaded()) {
+            return CompletableFuture.completedFuture(realPhoto);
         }
 
         return CompletableFuture.supplyAsync(() -> {
-            synchronized (photo.getLock()) {
+            synchronized (realPhoto.getLock()) {
                 try {
-                    if (!photo.isAttributesLoaded()) {
-                        photo.loadImageAttributes();
-                        photo.setAttributesLoaded(true);
+                    if (!realPhoto.isAttributesLoaded()) {
+                        realPhoto.loadImageAttributes();
+                        realPhoto.setAttributesLoaded(true);
                     }
-                    if (!photo.isDimensionsLoaded()) {
-                        photo.loadImageDimensions();
-                        photo.setDimensionsLoaded(true);
+                    if (!realPhoto.isDimensionsLoaded()) {
+                        realPhoto.loadImageDimensions();
+                        realPhoto.setDimensionsLoaded(true);
                     }
                 } catch (IOException e) {
-                    throw new RuntimeException("Error loading photo metadata: " + photo, e);
+                    throw new RuntimeException("Error loading photo metadata: " + realPhoto, e);
                 }
-                return photo;
+                return realPhoto;
             }
         }, executor).exceptionally(ex -> {
-            photo.setAttributesLoaded(false);
-            photo.setDimensionsLoaded(false);
+            realPhoto.setAttributesLoaded(false);
+            realPhoto.setDimensionsLoaded(false);
             System.err.println(ex.getMessage());
             return null;
         });
+    }
+
+    private Image render(Photo photo) throws IOException {
+        if (photo == null) {
+            throw new NullPointerException("Photo cannot be null.");
+        }
+
+        if (photo.getType().equals("gif")) {
+            return new Image(photo.getPath().toUri().toString());
+        }
+
+        Image result;
+        try {
+            BufferedImage bufferedImage = ImageIO.read(photo.getPath().toFile());
+            
+            if (bufferedImage == null) {
+                throw new IOException("Failed to load image: " + photo.getPath());
+            }
+
+            result = SwingFXUtils.toFXImage(bufferedImage, null);
+
+            if (result.isError()) {
+                throw new IOException("Failed to load image: " + photo.getPath());
+            }
+
+            return result;
+        } catch (IOException e) {
+            throw new IOException("Failed to load image: " + photo.getPath(), e);
+        }
     }
 
     public void cancelTask() {
@@ -270,7 +351,10 @@ public class PhotoLoader {
     }
 
     public static void main(String[] args) {
-        LoaderTester.metadataLaterTest();
+        LoaderTester.loadPhotoTest();
+
+        System.out.println("All tasks completed.");
+        System.exit(0);
     }
 }
 
@@ -280,9 +364,10 @@ class LoaderTester {
             PhotoLoader loader = new PhotoLoader();
 
             Path path = Paths.get(
-                    "path/to/your/dir");
+                    "your/test/path/here");
 
             var future = loader.scanPathAsync(path);
+            loader.scanPath(path);
             if (future != null) {
                 future.thenRun(() -> {
                     System.out.println("Scan done.");
@@ -293,7 +378,6 @@ class LoaderTester {
                 System.out.println("Scan have already been done.");
             }
 
-            loader.scanPath(path);
             System.out.println("Scan done.");
 
             loader.cancelTask();
@@ -326,5 +410,79 @@ class LoaderTester {
         } catch (Exception e) {
             System.err.println(e.getClass().getName() + ": " + e.getMessage());
         }
+    }
+
+    static void asyncTest() {
+        try {
+            Path dir = Paths.get(
+                    "your/test/path/here"
+            );
+            Path img = Paths.get("D:\\KUN\\picture\\wallpaper\\escalator.jpg");
+
+            PhotoLoader loader = new PhotoLoader();
+            var scan = loader.scanPathAsync(dir);
+            var metadata = loader.loadPhotoMetadataAsync(new Photo(img, true));
+
+            scan.thenRun(() -> {
+                System.out.println("Scan done.");
+                System.out.println("Photo count: " + loader.getPhotoCount());
+                System.out.println("Photo paths: " + loader.getDirPath());
+                System.out.println(Thread.currentThread().getName() + "\t|\t" + Thread.currentThread().threadId());
+            });
+
+            metadata.thenAccept(p -> {
+                System.out.println("Size: " + p.getStorageSizeLiteral());
+                System.out.println("Last modified: " + p.getLastModifiedTimeLiteral());
+                System.out.println("Dimensions: " + p.getDimensionsLiteral());
+                System.out.println(Thread.currentThread().getName() + "\t|\t" + Thread.currentThread().threadId());
+            });
+
+            CompletableFuture.allOf(metadata, scan).join();
+
+            loader.cancelTask();
+        } catch (Exception e) {
+            System.err.println(e.getClass().getName() + ": " + e.getMessage());
+        }
+    }
+
+    static void loadPhotoTest() {
+        var path = Paths.get("D:\\KUN\\picture\\wallpaper\\escalator.jpg");
+        var photo = new Photo(path, true);
+        var loader = new PhotoLoader();
+
+        getThreadInfo();
+        var loadTask = loader.loadPhotoAsync(photo).thenAccept(image -> {
+            getThreadInfo();
+            System.out.println("Image loaded: " + image);
+            System.out.println("Image width: " + image.getWidth());
+            System.out.println("Image height: " + image.getHeight());
+            System.out.println();
+        }).exceptionally(ex -> {
+            System.err.println(ex.getMessage());
+            return null;
+        });
+
+        getThreadInfo();
+        var loadMeta = loader.loadPhotoMetadataAsync(photo).thenAccept(p -> {
+            getThreadInfo();
+            System.out.println("Metadata loaded: " + p);
+            System.out.println("Size: " + p.getStorageSizeLiteral());
+            System.out.println("Last modified: " + p.getLastModifiedTimeLiteral());
+            System.out.println("Dimensions: " + p.getDimensionsLiteral());
+            System.out.println();
+        }).exceptionally(ex -> {
+            System.err.println(ex.getMessage());
+            return null;
+        });
+
+        CompletableFuture.allOf(loadTask, loadMeta).join();
+        loader.cancelTask();
+    }
+
+    static void getThreadInfo() {
+        Thread thread = Thread.currentThread();
+        System.out.println(
+                thread.getName() + "\t|\t" + thread.threadId() + "\t|\t" + System.currentTimeMillis() % 1000
+        );
     }
 }
