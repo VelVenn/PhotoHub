@@ -39,6 +39,7 @@ public class Photos {
     }
 
     private static final Set<String> SUPPORTED_TYPES;
+    private static final boolean DEBUG = true;
 
     static {
         String[] suffixes = ImageIO.getReaderFileSuffixes();
@@ -46,7 +47,7 @@ public class Photos {
         SUPPORTED_TYPES = Arrays
                 .stream(suffixes).map(String::toLowerCase).collect(Collectors.toUnmodifiableSet());
 
-        System.out.println("Supported types " + SUPPORTED_TYPES);
+        if (DEBUG) System.out.println("Supported types " + SUPPORTED_TYPES);
     }
 
     static void validatePath(Path path) throws IOException {

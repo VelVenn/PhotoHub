@@ -145,7 +145,7 @@ public class Photo {
      * @param path The path to the photo file.
      * @param noValidation Any value will do.
      */
-    Photo(Path path, boolean noValidation) {
+    public Photo(Path path, boolean noValidation) {
         photoPath = path;
         parent = path.getParent();
 
@@ -302,7 +302,7 @@ public class Photo {
     public static void main(String[] args) {
         try {
             var path = Objects.requireNonNull(
-                    Photo.class.getResource("/io/loraine/photohub/Default Resources/Escalator.jpg")).toURI();
+                    Photo.class.getResource("/io/loraine/photohub/Default_Resources/Escalator.jpg")).toURI();
 
             Photo photoInfo = new Photo(Paths.get(path));
 
