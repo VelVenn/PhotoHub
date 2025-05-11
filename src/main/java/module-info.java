@@ -22,4 +22,5 @@ module io.loraine.photohub {
 
     exports io.loraine.photohub;
     exports io.loraine.photohub.viewer;
+    exports io.loraine.photohub.photo;
 }
