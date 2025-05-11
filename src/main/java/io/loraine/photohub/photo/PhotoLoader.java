@@ -29,9 +29,11 @@ import java.nio.file.*;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import java.util.List;
@@ -48,57 +50,97 @@ public class PhotoLoader {
 
     private volatile Path dirPath;
     private volatile List<Photo> photoPaths;
-    private Map<Photo, Integer> photoIndex = new ConcurrentHashMap<>();
+    private Map<Photo, Integer> photoIndex;
 
     private volatile boolean isScanDone = false;
     private final Object scanLock = new Object();
 
+    private static final boolean DEBUG = true;
+
     /**
-     * Default constructor, setting the image cache to max 150MiB
-     * and use the cached thread pool
+     * Default constructor, setting the image cache to max 200MiB
+     * and use the fixed thread pool, whose size is determined by the number of
+     * available cores, but not less than 4 and not more than 16.
      */
     public PhotoLoader() {
-        this(157_286_400, true); // 150MiB
+        this(209_715_200, true); // 200MiB
     }
 
+    /**
+     * Constructor which set the maximum photo amount that can be cached.
+     * <p>
+     * Use the fixed thread pool, whose size is determined by the number of
+     * available cores, but not less than 4 and not more than 16.
+     *
+     * @param cacheSize the maximum size of the cache in number of photos
+     */
     public PhotoLoader(int cacheSize) {
         cache = Caffeine.newBuilder()
                 .initialCapacity(10)
                 .maximumSize(cacheSize)
-                .expireAfterAccess(60, TimeUnit.SECONDS)
+                .expireAfterAccess(90, TimeUnit.SECONDS)
                 .build();
-        executor = Executors.newCachedThreadPool();
+
+        int availableCores = Runtime.getRuntime().availableProcessors();
+        int executorSize = Math.max(4, Math.min(availableCores, 16));
+        executor = Executors.newFixedThreadPool(executorSize);
     }
 
+    /**
+     * Constructor which set the maximum photo amount that can be cached
+     * and the size of the fixed thread pool.
+     *
+     * @param cacheSize    the maximum size of the cache in number of photos
+     * @param executorSize the size of the executor thread pool
+     */
     public PhotoLoader(int cacheSize, int executorSize) {
         cache = Caffeine.newBuilder()
                 .initialCapacity(10)
                 .maximumSize(cacheSize)
-                .expireAfterAccess(60, TimeUnit.SECONDS)
+                .expireAfterAccess(90, TimeUnit.SECONDS)
                 .build();
         executor = Executors.newFixedThreadPool(executorSize);
     }
 
-    // Any boolean value will do.
-    public PhotoLoader(int cacheWeight, boolean isWeight) {
+    /**
+     * Constructor which set the maximum memory usage of the cache.
+     * <p>
+     * Use the fixed thread pool, whose size is determined by the number of
+     * available cores, but not less than 4 and not more than 16.
+     *
+     * @param cacheWeight the maximum weight of the cache in bytes
+     * @param isWeight    any value will do
+     */
+    public PhotoLoader(long cacheWeight, boolean isWeight) {
         cache = Caffeine.newBuilder()
                 .initialCapacity(10)
                 .maximumWeight(cacheWeight)
-                .expireAfterAccess(60, TimeUnit.SECONDS)
+                .expireAfterAccess(90, TimeUnit.SECONDS)
                 .weigher((Photo p, Image i) -> {
                     double weight = i.getHeight() * i.getWidth() * 4; // Estimate as ARGB, assume 1 byte per channel
                     if (weight < 0) return 0;
                     return weight > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) weight;
                 })
                 .build();
-        executor = Executors.newCachedThreadPool();
+
+        int availableCores = Runtime.getRuntime().availableProcessors();
+        int executorSize = Math.max(4, Math.min(availableCores, 16));
+        executor = Executors.newFixedThreadPool(executorSize);
     }
 
-    public PhotoLoader(int cacheWeight, int executorSize, boolean isWeight) {
+    /**
+     * Constructor which set the maximum memory usage of the cache
+     * and the size of the fixed thread pool.
+     *
+     * @param cacheWeight  the maximum weight of the cache in bytes
+     * @param executorSize the size of the executor thread pool
+     * @param isWeight     any value will do
+     */
+    public PhotoLoader(long cacheWeight, int executorSize, boolean isWeight) {
         cache = Caffeine.newBuilder()
                 .initialCapacity(10)
                 .maximumWeight(cacheWeight)
-                .expireAfterAccess(60, TimeUnit.SECONDS)
+                .expireAfterAccess(90, TimeUnit.SECONDS)
                 .weigher((Photo p, Image i) -> {
                     double weight = i.getHeight() * i.getWidth() * 4;
                     if (weight < 0) return 0;
@@ -131,16 +173,12 @@ public class PhotoLoader {
             }
 
             try (Stream<Path> pathStream = Files.list(path)) {
-                List<Photo> tmpPhotoPaths = pathStream
-                        .filter(Photos::isValidPhoto)
-                        .map(p -> new Photo(p, true))
-                        .toList();
-                int[] idx = {0};
-                Map<Photo, Integer> tmpPhotoIndex = tmpPhotoPaths.stream()
-                        .collect(Collectors.toMap(p -> p, p -> idx[0]++));
-                photoPaths = tmpPhotoPaths;
-                photoIndex = tmpPhotoIndex;
-                isScanDone = true;
+                referenceBuilder(pathStream);
+            } catch (IOException e) {
+                isScanDone = false;
+                photoPaths = Collections.emptyList();
+                photoIndex = Collections.emptyMap();
+                throw new IOException("Error scanning path: " + path, e);
             }
 
             dirTask = CompletableFuture.completedFuture(null);
@@ -169,22 +207,17 @@ public class PhotoLoader {
 
             dirTask = CompletableFuture.runAsync(() -> {
                 try (Stream<Path> pathStream = Files.list(path)) {
-                    photoPaths = pathStream
-                            .filter(Photos::isValidPhoto)
-                            .map(p -> new Photo(p, true))
-                            .toList();
-
-                    int[] idx = {0};
-                    photoIndex = photoPaths.stream().collect(Collectors.toMap(p -> p, p -> idx[0]++));
-
-                    isScanDone = true;
+                    referenceBuilder(pathStream);
                 } catch (IOException e) {
                     throw new RuntimeException("Error scanning path: " + path, e);
                 }
-            }, executor).exceptionally(ex -> {
-                isScanDone = false;
-                System.err.println(ex.getMessage());
-                return null;
+            }, executor).whenComplete((v, ex) -> {
+                if (ex != null) {
+                    isScanDone = false;
+                    photoPaths = Collections.emptyList();
+                    photoIndex = Collections.emptyMap();
+                    if (DEBUG) System.err.println(ex.getMessage());
+                }
             });
         }
 
@@ -196,22 +229,26 @@ public class PhotoLoader {
             throw new NullPointerException("Photo cannot be null");
         }
 
+        Photo realPhoto =
+                (isScanDone && photoIndex.containsKey(photo)) ? photoPaths.get(photoIndex.get(photo)) : photo;
+
         // Check if photo hit the cache
-        Image cached = cache.getIfPresent(photo);
+        Image cached = cache.getIfPresent(realPhoto);
         if (cached != null) {
+            if (DEBUG) System.out.println("Cache hit: " + realPhoto);
             return CompletableFuture.completedFuture(cached);
         }
 
         // Check if the photo is already in loading
-        CompletableFuture<Image> future = photoTasks.get(photo);
+        CompletableFuture<Image> future = photoTasks.get(realPhoto);
         if (future != null && !future.isDone()) {
             return future;
         }
 
         CompletableFuture<Image> loadTask = CompletableFuture.supplyAsync(() -> {
             try {
-                Image image = render(photo);
-                cache.put(photo, image);
+                Image image = render(realPhoto);
+                cache.put(realPhoto, image);
                 return image;
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -219,14 +256,48 @@ public class PhotoLoader {
         }, executor);
 
         // Ensure that only the first started task is put in the map
-        CompletableFuture<Image> existingTask = photoTasks.putIfAbsent(photo, loadTask);
+        CompletableFuture<Image> existingTask = photoTasks.putIfAbsent(realPhoto, loadTask);
         if (existingTask != null) {
             return existingTask;
         }
 
-        loadTask.whenComplete((image, ex) -> photoTasks.remove(photo));
+        loadTask.whenComplete((image, ex) -> photoTasks.remove(realPhoto));
 
         return loadTask;
+    }
+
+    public CompletableFuture<Void> preLoadPhotosAsync(int curIndex, int preloadCount) {
+        if (!isScanDone || photoPaths == null || photoPaths.isEmpty()) {
+            return CompletableFuture.completedFuture(null);
+        }
+
+        if (curIndex < 0 || curIndex >= photoPaths.size()) {
+            throw new IndexOutOfBoundsException("Current index is out of bounds.");
+        }
+
+        if (preloadCount <= 0) {
+            throw new IllegalArgumentException("Preload count is invalid.");
+        }
+
+        int total = photoPaths.size();
+        int start = Math.max(0, curIndex - preloadCount);
+        int end = Math.min(total, curIndex + preloadCount);
+
+        // For the basic-type stream (such as int, long, double), the map
+        // operation could only return the same type of stream.
+        // use mapToObj to convert to other types' stream
+        List<CompletableFuture<Image>> futures =
+                IntStream.range(start, end + 1) // start <= i < end + 1
+                        .filter(i -> i != curIndex)
+                        .mapToObj(i -> photoPaths.get(i))
+                        .filter(photo -> cache.getIfPresent(photo) == null)
+                        .map(this::loadPhotoAsync)
+                        .toList(); // toArray here may cause type unsafety
+
+        if (futures.isEmpty()) {
+            return CompletableFuture.completedFuture(null);
+        }
+        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])); // prevent type erasure
     }
 
     public CompletableFuture<Photo> loadPhotoMetadataAsync(Photo photo) {
@@ -257,11 +328,12 @@ public class PhotoLoader {
                 }
                 return realPhoto;
             }
-        }, executor).exceptionally(ex -> {
-            realPhoto.setAttributesLoaded(false);
-            realPhoto.setDimensionsLoaded(false);
-            System.err.println(ex.getMessage());
-            return null;
+        }, executor).whenComplete((v, ex) -> {
+            if (ex != null) {
+                realPhoto.setAttributesLoaded(false);
+                realPhoto.setDimensionsLoaded(false);
+                if (DEBUG) System.err.println(ex.getMessage());
+            }
         });
     }
 
@@ -277,7 +349,7 @@ public class PhotoLoader {
         Image result;
         try {
             BufferedImage bufferedImage = ImageIO.read(photo.getPath().toFile());
-            
+
             if (bufferedImage == null) {
                 throw new IOException("Failed to load image: " + photo.getPath());
             }
@@ -325,6 +397,26 @@ public class PhotoLoader {
         return List.copyOf(photoPaths);
     }
 
+    public int getPhotoIndex(Photo photo) {
+        if (!isScanDone) {
+            return -1;
+        }
+
+        return photoIndex.getOrDefault(photo, -1);
+    }
+
+    public Photo getPhotoByIndex(int index) {
+        if (!isScanDone) {
+            return null;
+        }
+
+        if (index < 0 || index >= photoPaths.size()) {
+            throw new IndexOutOfBoundsException("Index is out of bounds.");
+        }
+
+        return photoPaths.get(index);
+    }
+
     public Path getDirPath() {
         return dirPath;
     }
@@ -350,139 +442,18 @@ public class PhotoLoader {
         dirPath = path;
     }
 
-    public static void main(String[] args) {
-        LoaderTester.loadPhotoTest();
+    private void referenceBuilder(Stream<Path> pathStream) {
+        List<Photo> tmpPhotoPaths = pathStream
+                .filter(Photos::isValidPhoto)
+                .map(p -> new Photo(p, true))
+                .toList();
+        int[] idx = {0};
+        Map<Photo, Integer> tmpPhotoIndex = tmpPhotoPaths.stream()
+                .collect(Collectors.toMap(p -> p, p -> idx[0]++));
 
-        System.out.println("All tasks completed.");
-        System.exit(0);
-    }
-}
+        photoPaths = tmpPhotoPaths;
+        photoIndex = new ConcurrentHashMap<>(tmpPhotoIndex);
 
-class LoaderTester {
-    static void scanDirTest() {
-        try {
-            PhotoLoader loader = new PhotoLoader();
-
-            Path path = Paths.get(
-                    "your/test/path/here");
-
-            var future = loader.scanPathAsync(path);
-            loader.scanPath(path);
-            if (future != null) {
-                future.thenRun(() -> {
-                    System.out.println("Scan done.");
-                    System.out.println("Photo count: " + loader.getPhotoCount());
-                    System.out.println("Photo paths: " + loader.getDirPath());
-                }).join();
-            } else {
-                System.out.println("Scan have already been done.");
-            }
-
-            System.out.println("Scan done.");
-
-            loader.cancelTask();
-        } catch (IOException e) {
-            System.err.println(e.getClass().getName() + ": " + e.getMessage());
-        }
-    }
-
-    static void metadataLaterTest() {
-        try {
-            PhotoLoader loader = new PhotoLoader();
-
-            var path = Paths.get("D:\\KUN\\picture\\wallpaper\\escalator.jpg");
-
-            Photo photo = new Photo(path, true);
-
-            var future = loader.loadPhotoMetadataAsync(photo).thenAccept(p -> {
-                System.out.println("Size: " + p.getStorageSizeLiteral());
-                System.out.println("Last modified: " + p.getLastModifiedTimeLiteral());
-                System.out.println("Dimensions: " + p.getDimensionsLiteral());
-            });
-
-            System.out.println("Photo: " + photo.getName());
-            System.out.println("Path: " + photo.getPath());
-            System.out.println("Type: " + photo.getType());
-
-            future.join();
-
-            loader.cancelTask();
-        } catch (Exception e) {
-            System.err.println(e.getClass().getName() + ": " + e.getMessage());
-        }
-    }
-
-    static void asyncTest() {
-        try {
-            Path dir = Paths.get(
-                    "your/test/path/here"
-            );
-            Path img = Paths.get("D:\\KUN\\picture\\wallpaper\\escalator.jpg");
-
-            PhotoLoader loader = new PhotoLoader();
-            var scan = loader.scanPathAsync(dir);
-            var metadata = loader.loadPhotoMetadataAsync(new Photo(img, true));
-
-            scan.thenRun(() -> {
-                System.out.println("Scan done.");
-                System.out.println("Photo count: " + loader.getPhotoCount());
-                System.out.println("Photo paths: " + loader.getDirPath());
-                System.out.println(Thread.currentThread().getName() + "\t|\t" + Thread.currentThread().threadId());
-            });
-
-            metadata.thenAccept(p -> {
-                System.out.println("Size: " + p.getStorageSizeLiteral());
-                System.out.println("Last modified: " + p.getLastModifiedTimeLiteral());
-                System.out.println("Dimensions: " + p.getDimensionsLiteral());
-                System.out.println(Thread.currentThread().getName() + "\t|\t" + Thread.currentThread().threadId());
-            });
-
-            CompletableFuture.allOf(metadata, scan).join();
-
-            loader.cancelTask();
-        } catch (Exception e) {
-            System.err.println(e.getClass().getName() + ": " + e.getMessage());
-        }
-    }
-
-    static void loadPhotoTest() {
-        var path = Paths.get("D:\\KUN\\picture\\wallpaper\\escalator.jpg");
-        var photo = new Photo(path, true);
-        var loader = new PhotoLoader();
-
-        getThreadInfo();
-        var loadTask = loader.loadPhotoAsync(photo).thenAccept(image -> {
-            getThreadInfo();
-            System.out.println("Image loaded: " + image);
-            System.out.println("Image width: " + image.getWidth());
-            System.out.println("Image height: " + image.getHeight());
-            System.out.println();
-        }).exceptionally(ex -> {
-            System.err.println(ex.getMessage());
-            return null;
-        });
-
-        getThreadInfo();
-        var loadMeta = loader.loadPhotoMetadataAsync(photo).thenAccept(p -> {
-            getThreadInfo();
-            System.out.println("Metadata loaded: " + p);
-            System.out.println("Size: " + p.getStorageSizeLiteral());
-            System.out.println("Last modified: " + p.getLastModifiedTimeLiteral());
-            System.out.println("Dimensions: " + p.getDimensionsLiteral());
-            System.out.println();
-        }).exceptionally(ex -> {
-            System.err.println(ex.getMessage());
-            return null;
-        });
-
-        CompletableFuture.allOf(loadTask, loadMeta).join();
-        loader.cancelTask();
-    }
-
-    static void getThreadInfo() {
-        Thread thread = Thread.currentThread();
-        System.out.println(
-                thread.getName() + "\t|\t" + thread.threadId() + "\t|\t" + System.currentTimeMillis() % 1000
-        );
+        isScanDone = true;
     }
 }
