@@ -18,8 +18,6 @@
 
 package io.loraine.photohub.photo;
 
-// import javax.imageio.ImageIO;
-
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.Files;
@@ -32,92 +30,132 @@ import java.time.ZoneId;
 import java.util.Iterator;
 import java.util.Objects;
 
-import java.util.Set;
-import java.util.HashSet;
-import java.util.stream.Collectors;
-import java.util.Arrays;
-
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
 import javax.imageio.stream.ImageInputStream;
 
 import java.io.IOException;
-import java.nio.file.NoSuchFileException;
 
 public class Photo {
-    private static final Set<String> SUPPORTED_TYPES;
     private static final DateTimeFormatter BASIC_TIME_FORMAT;
 
-    private String name;
-    private String type;
+    private final String name;
+    private final String type;
 
-    private long storageSize;
-    private long width = 0;
-    private long height = 0;
+    private final Path photoPath;
+    private final Path parent;
 
-    private Path photoPath;
-    private Path parent;
+    private volatile long width = -1;
+    private volatile long height = -1;
 
-    private LocalDateTime lastModifiedTime;
+    private volatile long storageSize = -1;
+    private volatile LocalDateTime lastModifiedTime = null;
+
+    private volatile boolean isAttributesLoaded = false;
+    private volatile boolean isDimensionsLoaded = false;
+
+    private final Object lock = new Object();
 
     static {
-        String[] suffixes = ImageIO.getReaderFileSuffixes();
-        SUPPORTED_TYPES = Arrays
-                .stream(suffixes).map(String::toLowerCase).collect(Collectors.toCollection(HashSet::new));
-
-        System.out.println("Supported types " + SUPPORTED_TYPES);
         BASIC_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss, ccc");
     }
 
     public Photo(Path path) throws IOException {
-        if (path == null) {
-            throw new IllegalArgumentException("Path cannot be null");
-        }
-
-        if (!Files.exists(path)) {
-            throw new NoSuchFileException("File does not exist: " + path);
-        }
-
-        if (Files.isDirectory(path)) {
-            throw new IOException("Path is a directory: " + path);
-        }
-
-        if (!Files.isReadable(path)) {
-            throw new IOException("File is not readable: " + path);
-        }
-
-        name = path.getFileName().toString();
-        int dotIndex = name.lastIndexOf('.');
-
-        type = (dotIndex == -1 || dotIndex == name.length() - 1)
-                ? "NO EXTENSION" : name.substring(dotIndex + 1).toLowerCase();
-
-        if (type.equals("NO EXTENSION")) {
-            throw new IOException("File has no extension: " + path);
-        }
-
-        if (!SUPPORTED_TYPES.contains(type)) {
-            throw new IOException("Unsupported file type: " + type);
-        }
+        Photos.validatePath(path);
 
         photoPath = path;
         parent = path.getParent();
 
-        BasicFileAttributes attributes = Files.readAttributes(path, BasicFileAttributes.class);
-        storageSize = attributes.size();
-        lastModifiedTime = LocalDateTime.ofInstant(
-                attributes.lastModifiedTime().toInstant(), ZoneId.systemDefault());
+        name = path.getFileName().toString();
+        type = Photos.getFileExtension(name);
 
-        loadImageDimensions();
+        Photos.validateFileExtension(type);
+
+        if (!isAttributesLoaded) {
+            synchronized (lock) {
+                if (!isAttributesLoaded) {
+                    try {
+                        loadImageAttributes();
+                        isAttributesLoaded = true;
+                    } catch (IOException e) {
+                        isAttributesLoaded = false;
+                        throw e;
+                    }
+                }
+            }
+        }
+
+        if (!isDimensionsLoaded) {
+            synchronized (lock) {
+                if (!isDimensionsLoaded) {
+                    try {
+                        loadImageDimensions();
+                        isDimensionsLoaded = true;
+                    } catch (IOException e) {
+                        isDimensionsLoaded = false;
+                        throw e;
+                    }
+                }
+            }
+        }
     }
 
     public Photo(String pathLiteral) throws IOException {
-        this(Paths.get(pathLiteral));
+        Photos.validatePath(pathLiteral);
+
+        photoPath = Paths.get(pathLiteral);
+        parent = photoPath.getParent();
+
+        name = photoPath.getFileName().toString();
+        type = Photos.getFileExtension(name);
+
+        Photos.validateFileExtension(type);
+        
+        if (!isAttributesLoaded) {
+            synchronized (lock) {
+                if (!isAttributesLoaded) {
+                    try {
+                        loadImageAttributes();
+                        isAttributesLoaded = true;
+                    } catch (IOException e) {
+                        isAttributesLoaded = false;
+                        throw e;
+                    }
+                }
+            }
+        }
+
+        if (!isDimensionsLoaded) {
+            synchronized (lock) {
+                if (!isDimensionsLoaded) {
+                    try {
+                        loadImageDimensions();
+                        isDimensionsLoaded = true;
+                    } catch (IOException e) {
+                        isDimensionsLoaded = false;
+                        throw e;
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Construct a Photo object WITHOUT any I/O pre-validation.
+     * @param path The path to the photo file.
+     * @param noValidation Any value will do.
+     */
+    public Photo(Path path, boolean noValidation) {
+        photoPath = path;
+        parent = path.getParent();
+
+        name = photoPath.getFileName().toString();
+        type = Photos.getFileExtension(name);
     }
 
     // Only read the metadata instead of decoding the image
-    private void loadImageDimensions() throws IOException {
-        try (ImageInputStream in = ImageIO.createImageInputStream(Files.newInputStream(photoPath))) {
+    void loadImageDimensions() throws IOException {
+        try (ImageInputStream in = ImageIO.createImageInputStream(photoPath.toFile())) {
             if (in == null) {
                 throw new IOException("Failed to read the bytes in: " + photoPath);
             }
@@ -143,6 +181,13 @@ public class Photo {
                 reader.dispose(); // 释放资源
             }
         }
+    }
+
+    void loadImageAttributes() throws IOException {
+        BasicFileAttributes attributes = Files.readAttributes(photoPath, BasicFileAttributes.class);
+        storageSize = attributes.size();
+        lastModifiedTime = LocalDateTime.ofInstant(
+                attributes.lastModifiedTime().toInstant(), ZoneId.systemDefault());
     }
 
     public String getName() {
@@ -192,23 +237,76 @@ public class Photo {
     }
 
     public String getLastModifiedTimeLiteral() {
+        if (lastModifiedTime == null) {
+            return "Unknown";
+        }
+
         return lastModifiedTime.format(BASIC_TIME_FORMAT);
     }
 
     public Path getPath() {
-        return photoPath;
+        return Paths.get(photoPath.toString());
     }
 
     public Path getParent() {
-        return parent;
+        return Paths.get(parent.toString());
+    }
+
+    public static DateTimeFormatter getTimeFormat() {
+        return BASIC_TIME_FORMAT;
+    }
+
+    /** This should only be called by the PhotoLoader class */
+    void setAttributesLoaded(boolean value) {
+        isAttributesLoaded = value;
+    }
+
+    /** This should only be called by the PhotoLoader class */
+    void setDimensionsLoaded(boolean value) {
+        isDimensionsLoaded = value;
+    }
+
+    /** This should only be called by the PhotoLoader class */
+    Object getLock() {
+        return lock;
+    }
+
+    public boolean isAttributesLoaded() {
+        return isAttributesLoaded;
+    }
+
+    public boolean isDimensionsLoaded() {
+        return isDimensionsLoaded;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+
+        if (obj == null || this.getClass() != obj.getClass()) {
+            return false;
+        }
+
+        Photo other = (Photo) obj;
+
+        return this.photoPath.equals(other.photoPath);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(photoPath, this.getClass());
     }
 
     public static void main(String[] args) {
         try {
             var path = Objects.requireNonNull(
-                    Photo.class.getResource("/io/loraine/photohub/Default Resources/Escalator.jpg")).toURI();
+                    Photo.class.getResource("/io/loraine/photohub/Default_Resources/Escalator.jpg")).toURI();
 
             Photo photoInfo = new Photo(Paths.get(path));
+
+            System.out.println(Files.probeContentType(photoInfo.getPath()));
 
             System.out.println(photoInfo.getType());
             System.out.println(photoInfo.getName());

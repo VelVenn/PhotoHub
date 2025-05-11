@@ -81,7 +81,7 @@
       <children>
         <ImageView fx:id="photoView" cache="true" cacheHint="SPEED" fitHeight="150.0" fitWidth="200.0" pickOnBounds="true" preserveRatio="true">
           <image>
-            <Image url="@../Default Resources/Lenna.png" />
+            <Image url="@../Default_Resources/Lenna.png" />
           </image>
         </ImageView>
       </children>
