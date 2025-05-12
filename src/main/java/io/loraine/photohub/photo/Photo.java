@@ -211,6 +211,10 @@ public class Photo {
     }
 
     public String getStorageSizeLiteral() {
+        if (storageSize < 0 || !isAttributesLoaded) {
+            return "N/A";
+        }
+
         if (storageSize < 1024) {
             return storageSize + " B";
         } else if (storageSize < 1024 * 1024) {
@@ -229,7 +233,11 @@ public class Photo {
     }
 
     public String getDimensionsLiteral() {
-        return width + " × " + height;
+        if (width < 0 || height < 0 || !isDimensionsLoaded) {
+            return "N/A";
+        }
+
+        return width + " x " + height;
     }
 
     public LocalDateTime getLastModifiedTime() {
@@ -237,8 +245,8 @@ public class Photo {
     }
 
     public String getLastModifiedTimeLiteral() {
-        if (lastModifiedTime == null) {
-            return "Unknown";
+        if (lastModifiedTime == null || !isAttributesLoaded) {
+            return "N/A";
         }
 
         return lastModifiedTime.format(BASIC_TIME_FORMAT);
