@@ -249,6 +249,11 @@ public class PhotoLoader {
             try {
                 Image image = render(realPhoto);
                 cache.put(realPhoto, image);
+                if (DEBUG) {
+                    System.out.println("Render ended: " + realPhoto.getName() + " on thread: "
+                            + Thread.currentThread().getName() + ", " + Thread.currentThread().threadId()
+                            + ", " + System.currentTimeMillis() % 10000);
+                }
                 return image;
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -267,37 +272,48 @@ public class PhotoLoader {
     }
 
     public CompletableFuture<Void> preLoadPhotosAsync(int curIndex, int preloadCount) {
-        if (!isScanDone || photoPaths == null || photoPaths.isEmpty()) {
-            return CompletableFuture.completedFuture(null);
-        }
+        CompletableFuture<Void> preLoadTask = CompletableFuture.supplyAsync(() -> {
+            if (!isScanDone || photoPaths == null || photoPaths.isEmpty()) {
+                return List.<CompletableFuture<Image>>of();
+            }
 
-        if (curIndex < 0 || curIndex >= photoPaths.size()) {
-            throw new IndexOutOfBoundsException("Current index is out of bounds.");
-        }
+            if (curIndex < 0 || curIndex >= photoPaths.size()) {
+                throw new IndexOutOfBoundsException("Current index is out of bounds.");
+            }
 
-        if (preloadCount <= 0) {
-            throw new IllegalArgumentException("Preload count is invalid.");
-        }
+            if (preloadCount <= 0) {
+                throw new IllegalArgumentException("Preload count is invalid.");
+            }
 
-        int total = photoPaths.size();
-        int start = Math.max(0, curIndex - preloadCount);
-        int end = Math.min(total, curIndex + preloadCount);
+            int total = photoPaths.size();
+            int start = Math.max(0, curIndex - preloadCount);
+            int end = Math.min(total, curIndex + preloadCount);
 
-        // For the basic-type stream (such as int, long, double), the map
-        // operation could only return the same type of stream.
-        // use mapToObj to convert to other types' stream
-        List<CompletableFuture<Image>> futures =
-                IntStream.range(start, end + 1) // start <= i < end + 1
-                        .filter(i -> i != curIndex)
-                        .mapToObj(i -> photoPaths.get(i))
-                        .filter(photo -> cache.getIfPresent(photo) == null)
-                        .map(this::loadPhotoAsync)
-                        .toList(); // toArray here may cause type unsafety
+            // For the basic-type stream (such as int, long, double), the map
+            // operation could only return the same type of stream.
+            // use mapToObj to convert to other types' stream
+            return IntStream.range(start, end + 1) // start <= i < end + 1
+                    .filter(i -> i != curIndex)
+                    .mapToObj(i -> photoPaths.get(i))
+                    .filter(photo -> cache.getIfPresent(photo) == null)
+                    .map(this::loadPhotoAsync)
+                    .toList(); // toArray here may cause type unsafety
 
-        if (futures.isEmpty()) {
-            return CompletableFuture.completedFuture(null);
-        }
-        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])); // prevent type erasure
+        }, executor).thenCompose(futures -> {
+            if (futures == null || futures.isEmpty()) {
+                return CompletableFuture.completedFuture(null);
+            }
+
+            return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])); // prevent type erasure
+        });
+
+        preLoadTask.whenComplete((v, ex) -> {
+            if (ex != null) {
+                if (DEBUG) System.err.println("Preload batch failed: " + ex.getMessage());
+            }
+        });
+
+        return preLoadTask;
     }
 
     public CompletableFuture<Photo> loadPhotoMetadataAsync(Photo photo) {
@@ -340,6 +356,12 @@ public class PhotoLoader {
     private Image render(Photo photo) throws IOException {
         if (photo == null) {
             throw new NullPointerException("Photo cannot be null.");
+        }
+
+        if (DEBUG) {
+            System.out.println("Rendering " + photo.getName() + " on thread: "
+                    + Thread.currentThread().getName() + ", " + Thread.currentThread().threadId()
+                    + ", " + System.currentTimeMillis() % 10000);
         }
 
         if (photo.getType().equals("gif")) {
@@ -447,9 +469,11 @@ public class PhotoLoader {
                 .filter(Photos::isValidPhoto)
                 .map(p -> new Photo(p, true))
                 .toList();
-        int[] idx = {0};
-        Map<Photo, Integer> tmpPhotoIndex = tmpPhotoPaths.stream()
-                .collect(Collectors.toMap(p -> p, p -> idx[0]++));
+
+        Map<Photo, Integer> tmpPhotoIndex = IntStream
+                .range(0, tmpPhotoPaths.size())
+                .boxed() // Box the int to Integer
+                .collect(Collectors.toMap(tmpPhotoPaths::get, i -> i));
 
         photoPaths = tmpPhotoPaths;
         photoIndex = new ConcurrentHashMap<>(tmpPhotoIndex);
