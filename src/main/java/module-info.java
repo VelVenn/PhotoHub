@@ -4,6 +4,8 @@ module io.loraine.photohub {
     requires javafx.fxml;
     requires javafx.web;
 
+    requires transitive javafx.graphics;
+
     requires org.controlsfx.controls;
     requires org.kordamp.ikonli.javafx;
     requires org.kordamp.ikonli.materialdesign2;
