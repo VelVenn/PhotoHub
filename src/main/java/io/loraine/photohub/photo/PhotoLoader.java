@@ -40,7 +40,9 @@ import java.util.List;
 
 import java.io.IOException;
 
-public class PhotoLoader {
+import java.io.Closeable;
+
+public class PhotoLoader implements Closeable {
     private final Cache<Photo, Image> cache;
 
     private final ExecutorService executor;
@@ -252,7 +254,7 @@ public class PhotoLoader {
                 if (DEBUG) {
                     System.out.println("Render ended: " + realPhoto.getName() + " on thread: "
                             + Thread.currentThread().getName() + ", " + Thread.currentThread().threadId()
-                            + ", " + System.currentTimeMillis() % 10000);
+                            + ", " + System.currentTimeMillis() % 100000);
                 }
                 return image;
             } catch (IOException e) {
@@ -361,7 +363,7 @@ public class PhotoLoader {
         if (DEBUG) {
             System.out.println("Rendering " + photo.getName() + " on thread: "
                     + Thread.currentThread().getName() + ", " + Thread.currentThread().threadId()
-                    + ", " + System.currentTimeMillis() % 10000);
+                    + ", " + System.currentTimeMillis() % 1000000);
         }
 
         if (photo.getType().equals("gif")) {
@@ -388,7 +390,7 @@ public class PhotoLoader {
         }
     }
 
-    public void cancelTask() {
+    private void cancelTask() {
         if (dirTask != null && !dirTask.isDone()) {
             dirTask.cancel(true);
         }
@@ -443,8 +445,29 @@ public class PhotoLoader {
         return dirPath;
     }
 
+    /**
+     * Checks if this PhotoLoader is ready for index-based operations,
+     * i.e., directory scan is done and all core data structures are initialized.
+     * <p>
+     * Returns {@code true} only if the scan is done and {@code dirPath},
+     * {@code photoPaths}, and {@code photoIndex} are all non-null.
+     * <p>
+     * Thread-safe for status checking, but does not guarantee the state remains
+     * unchanged after the call.
+     *
+     * @return {@code true} if the loader is ready for index-based operations, {@code false} otherwise
+     */
+    public boolean isIndexBasedUsable() {
+        return isScanDone && dirPath != null && photoPaths != null && photoIndex != null;
+    }
+
     public ExecutorService getExecutor() {
         return executor;
+    }
+
+    @Override
+    public void close() {
+        cancelTask();
     }
 
     private void validateDirectory(Path path) throws NoSuchFileException, AccessDeniedException {
