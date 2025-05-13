@@ -21,6 +21,6 @@ package io.loraine.photohub.demo;
 public class LoaderTesterForMvn {
     // Try different main methods in LoaderTester
     public static void main(String[] args) {
-        LoadPhotoTest.main(args);
+        preLoadTest.main(args);
     }
 }

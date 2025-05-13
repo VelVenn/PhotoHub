@@ -36,11 +36,6 @@ import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
-public class LoaderTester {
-    private LoaderTester() {
-    }
-}
-
 class ScanDirTest {
     public static void main(String[] args) {
         try {
@@ -63,7 +58,7 @@ class ScanDirTest {
 
             System.out.println("Scan done.");
 
-            loader.cancelTask();
+            loader.close();
         } catch (IOException e) {
             System.err.println(e.getClass().getName() + ": " + e.getMessage());
         }
@@ -75,7 +70,7 @@ class MetadataLaterTest {
         try {
             PhotoLoader loader = new PhotoLoader();
 
-            var path = Paths.get("D:\\KUN\\picture\\wallpaper\\escalator.jpg");
+            var path = Paths.get("your/test/photo/here.jpg"); // Change this to your photo path
 
             Photo photo = new Photo(path, true);
 
@@ -91,7 +86,7 @@ class MetadataLaterTest {
 
             future.join();
 
-            loader.cancelTask();
+            loader.close();
         } catch (Exception e) {
             System.err.println(e.getClass().getName() + ": " + e.getMessage());
         }
@@ -128,7 +123,7 @@ class AsyncTest {
 
             CompletableFuture.allOf(metadata, scan).join();
 
-            loader.cancelTask();
+            loader.close();
         } catch (Exception e) {
             System.err.println(e.getClass().getName() + ": " + e.getMessage());
         }
@@ -186,7 +181,7 @@ class LoadPhotoTest {
             return null;
         });
 
-        loader.cancelTask();
+        loader.close();
     }
 }
 
@@ -195,8 +190,7 @@ class preLoadTest {
         Path path = Paths.get("your/photo/directory"); // Change this to your photo directory
         Path escalator = Paths.get("your/photo/directory/some_photo.jpg"); // Change this to your photo path
 
-        PhotoLoader loader = new PhotoLoader();
-        try {
+        try (PhotoLoader loader = new PhotoLoader()) {
             var future = loader.scanPathAsync(path);
             future.thenRun(() -> {
                 System.out.println("Scan done.");
@@ -274,8 +268,6 @@ class preLoadTest {
             }).join();
         } catch (IOException e) {
             System.err.println(e.getClass().getName() + ": " + e.getMessage());
-        } finally {
-            loader.cancelTask();
         }
     }
 }
