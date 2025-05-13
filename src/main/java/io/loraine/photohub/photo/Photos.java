@@ -50,7 +50,7 @@ public class Photos {
         if (DEBUG) System.out.println("Supported types " + SUPPORTED_TYPES);
     }
 
-    static void validatePath(Path path) throws IOException {
+    public static void validatePath(Path path) throws IOException {
         if (path == null) {
             throw new NullPointerException("Path cannot be null.");
         }
@@ -68,7 +68,7 @@ public class Photos {
         }
     }
 
-    static void validatePath(String pathLiteral) throws IOException {
+    public static void validatePath(String pathLiteral) throws IOException {
         try {
             Path path = Paths.get(pathLiteral);
             validatePath(path);
