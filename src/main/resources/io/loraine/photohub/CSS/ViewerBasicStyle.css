@@ -73,6 +73,7 @@
     -fx-border-radius: 4;
     -fx-border-color: #b0d9e8;
     -fx-border-width: 1;
+    -fx-pref-width: 85;
     /* Removed transition */
 }
 
@@ -87,6 +88,7 @@
 }
 
 .jfx-combo-box .list-view {
+    -fx-pref-width: 85;
     -fx-background-color: #ffffff;
     -fx-border-color: #b0d9e8;
     -fx-border-width: 1;
@@ -108,7 +110,7 @@
 }
 
 .jfx-combo-box .list-cell:filled:selected {
-    -fx-background-color: #a1efff;
+    /*-fx-background-color: #a1efff;*/
     /* Bright blue for selected item */
     -fx-text-fill: #001f25;
     -fx-font-weight: normal;
