@@ -8,6 +8,7 @@ import javafx.animation.PauseTransition;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 
+import javafx.beans.property.ReadOnlyStringProperty;
 import javafx.beans.value.ChangeListener;
 
 import javafx.fxml.FXML;
@@ -333,6 +334,18 @@ public class ViewController {
     public void setStageMinSize(Stage stage) {
         stage.setMinWidth(540);
         stage.setMinHeight(200);
+    }
+
+    public int getMinWidth() {
+        return 540;
+    }
+
+    public int getMinHeight() {
+        return 200;
+    }
+
+    public ReadOnlyStringProperty curPhotoNameProperty() {
+        return viewProperty.displayNameProperty();
     }
 
     @FXML
