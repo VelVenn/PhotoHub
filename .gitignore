@@ -36,3 +36,6 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+### Project ###
+/src/main/resources/io/loraine/photohub/Default_Resources/Original load method.txt
