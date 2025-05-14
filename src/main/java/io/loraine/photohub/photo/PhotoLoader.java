@@ -208,6 +208,13 @@ public class PhotoLoader implements Closeable {
             }
 
             dirTask = CompletableFuture.runAsync(() -> {
+                if (DEBUG) {
+                    System.out.println(
+                            "Scanning start: " + path + ", " + Thread.currentThread().getName()
+                                    + ", " + Thread.currentThread().threadId()
+                                    + ", " + System.currentTimeMillis() % 1000000);
+                }
+
                 try (Stream<Path> pathStream = Files.list(path)) {
                     referenceBuilder(pathStream);
                 } catch (IOException e) {
@@ -220,12 +227,20 @@ public class PhotoLoader implements Closeable {
                     photoIndex = Collections.emptyMap();
                     if (DEBUG) System.err.println(ex.getMessage());
                 }
+
+                if (DEBUG) {
+                    System.out.println(
+                            "Scanning Done: " + path + ", " + Thread.currentThread().getName()
+                                    + ", " + Thread.currentThread().threadId()
+                                    + ", " + System.currentTimeMillis() % 1000000);
+                }
             });
         }
 
         return dirTask;
     }
 
+    //TODO New cache strategy for gif file should be considered, currently it is simply avoid from being cached.
     public CompletableFuture<Image> loadPhotoAsync(Photo photo) {
         if (photo == null) {
             throw new NullPointerException("Photo cannot be null");
@@ -237,7 +252,7 @@ public class PhotoLoader implements Closeable {
         // Check if photo hit the cache
         Image cached = cache.getIfPresent(realPhoto);
         if (cached != null) {
-            if (DEBUG) System.out.println("Cache hit: " + realPhoto);
+            if (DEBUG) System.out.println("Cache hit: " + realPhoto.getName());
             return CompletableFuture.completedFuture(cached);
         }
 
@@ -250,7 +265,9 @@ public class PhotoLoader implements Closeable {
         CompletableFuture<Image> loadTask = CompletableFuture.supplyAsync(() -> {
             try {
                 Image image = render(realPhoto);
-                cache.put(realPhoto, image);
+                if (!realPhoto.getType().equals("gif")) {
+                    cache.put(realPhoto, image);
+                }
                 if (DEBUG) {
                     System.out.println("Render ended: " + realPhoto.getName() + " on thread: "
                             + Thread.currentThread().getName() + ", " + Thread.currentThread().threadId()
@@ -273,6 +290,7 @@ public class PhotoLoader implements Closeable {
         return loadTask;
     }
 
+    //TODO New cache strategy for gif file should be considered, now is simply avoided from being pre-loaded
     public CompletableFuture<Void> preLoadPhotosAsync(int curIndex, int preloadCount) {
         CompletableFuture<Void> preLoadTask = CompletableFuture.supplyAsync(() -> {
             if (!isScanDone || photoPaths == null || photoPaths.isEmpty()) {
@@ -287,7 +305,7 @@ public class PhotoLoader implements Closeable {
                 throw new IllegalArgumentException("Preload count is invalid.");
             }
 
-            int total = photoPaths.size();
+            int total = photoPaths.size() - 1;
             int start = Math.max(0, curIndex - preloadCount);
             int end = Math.min(total, curIndex + preloadCount);
 
@@ -297,6 +315,7 @@ public class PhotoLoader implements Closeable {
             return IntStream.range(start, end + 1) // start <= i < end + 1
                     .filter(i -> i != curIndex)
                     .mapToObj(i -> photoPaths.get(i))
+                    .filter(photo -> !photo.getType().equals("gif"))
                     .filter(photo -> cache.getIfPresent(photo) == null)
                     .map(this::loadPhotoAsync)
                     .toList(); // toArray here may cause type unsafety
