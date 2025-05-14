@@ -13,7 +13,7 @@
   <top>
     <HBox fx:id="topHBox" prefHeight="40.0" prefWidth="600.0" spacing="8.0" styleClass="top-hbox" stylesheets="@../CSS/ViewerBasicStyle.css" BorderPane.alignment="CENTER_LEFT">
       <children>
-        <JFXComboBox fx:id="sizeCombo" focusColor="#4d4d4d" prefHeight="23.0" prefWidth="65.0" promptText="100%">
+        <JFXComboBox fx:id="sizeCombo" focusColor="#4d4d4d" minWidth="-Infinity" prefHeight="23.0" prefWidth="65.0" promptText="100%">
           <HBox.margin>
             <Insets />
           </HBox.margin>
@@ -34,7 +34,7 @@
           </graphic>
         </JFXButton>
         <Region fx:id="topFilling" minWidth="0.0" HBox.hgrow="SOMETIMES" />
-        <JFXComboBox fx:id="timeCombo" focusColor="#4d4d4d" prefHeight="29.0" prefWidth="65.0" promptText="1s" />
+        <JFXComboBox fx:id="timeCombo" focusColor="#4d4d4d" minWidth="-Infinity" prefHeight="29.0" prefWidth="65.0" promptText="1s" />
         <JFXButton fx:id="playButton" contentDisplay="GRAPHIC_ONLY" ripplerFill="BLACK" styleClass="jfx-button" stylesheets="@../CSS/ViewerBasicStyle.css">
           <graphic>
             <StackedFontIcon>
