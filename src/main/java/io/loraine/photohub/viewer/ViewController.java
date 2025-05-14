@@ -395,7 +395,7 @@ public class ViewController {
             });
 
             timeCombo.valueProperty().addListener((o, oldV, newV) -> {
-                if (viewProperty.isScanDoneProperty().get()) {
+                if (viewProperty.isPlayingProperty().get()) {
                     startSlideShow();
                 }
             });
