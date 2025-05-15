@@ -1,3 +1,21 @@
+/**
+ * Photohub ---- To View Some S3xy Photos
+ * Copyright (C) 2025 Loraine, Yui
+ * <p>
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * <p>
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * <p>
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package io.loraine.photohub.viewer;
 
 import io.loraine.photohub.photo.*;
@@ -14,6 +32,10 @@ import java.util.concurrent.CompletableFuture;
 public class ViewProperty {
     private final IntegerProperty curIdx = new SimpleIntegerProperty(this, "curIdx", -1);
     private final IntegerProperty photoCount = new SimpleIntegerProperty(this, "photoCount", -1);
+
+    private final DoubleProperty curHeight = new SimpleDoubleProperty(this, "curHeight", 0);
+    private final DoubleProperty curWidth = new SimpleDoubleProperty(this, "curWidth", 0);
+
     private final DoubleProperty curZoom = new SimpleDoubleProperty(this, "curZoom", -1.0);
 
     private final ObjectProperty<Photo> curPhoto = new SimpleObjectProperty<>(this, "curPhoto", null);
@@ -69,8 +91,9 @@ public class ViewProperty {
 
         curPhoto.addListener(photoListener);
 
+        // 注释掉下面的两行如果想要手动触发初始图片的加载
         Photo initPhoto = curPhoto.get();
-        photoListener.changed(curPhoto, null, initPhoto);
+        Platform.runLater(() -> photoListener.changed(curPhoto, null, initPhoto));
     }
 
     private void setIdxListener() {
@@ -143,7 +166,7 @@ public class ViewProperty {
         }
     }
 
-    private void loadPhotoMeta(Photo photo) {
+    void loadPhotoMeta(Photo photo) {
         updatePhotoMeta(null);
 
         if (photo == null) {
@@ -159,7 +182,7 @@ public class ViewProperty {
         });
     }
 
-    private void loadImg(Photo photo) {
+    void loadImg(Photo photo) {
         isImgLoading.set(true);
         displayImg.set(null);
 
@@ -199,12 +222,18 @@ public class ViewProperty {
                     displayDimension.set(photo.getDimensionsLiteral());
                     displayType.set(photo.getType());
                     displayLastModified.set(photo.getLastModifiedTimeLiteral());
+
+                    curHeight.set(photo.getHeight());
+                    curWidth.set(photo.getWidth());
                 } else {
                     displayName.set("N/A");
                     displaySize.set("N/A");
                     displayDimension.set("N/A x N/A");
                     displayType.set("N/A");
                     displayLastModified.set("N/A");
+
+                    curHeight.set(0);
+                    curWidth.set(0);
                 }
             } catch (Exception e) {
                 String msg = "Failed to load metadata: " + e.getMessage();
@@ -233,6 +262,14 @@ public class ViewProperty {
 
     public IntegerProperty photoCountProperty() {
         return photoCount;
+    }
+
+    public DoubleProperty curHeightProperty() {
+        return curHeight;
+    }
+
+    public DoubleProperty curWidthProperty() {
+        return curWidth;
     }
 
     public DoubleProperty curZoomProperty() {
