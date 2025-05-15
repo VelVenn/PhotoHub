@@ -152,6 +152,20 @@ public class PhotoLoader implements Closeable {
         executor = Executors.newFixedThreadPool(executorSize);
     }
 
+    public PhotoLoader(long cacheWeight, int executorSize, int expire, boolean isWeight) {
+        cache = Caffeine.newBuilder()
+                .initialCapacity(10)
+                .maximumWeight(cacheWeight)
+                .expireAfterAccess(expire, TimeUnit.SECONDS)
+                .weigher((Photo p, Image i) -> {
+                    double weight = i.getHeight() * i.getWidth() * 4;
+                    if (weight < 0) return 0;
+                    return weight > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) weight;
+                })
+                .build();
+        executor = Executors.newFixedThreadPool(executorSize);
+    }
+
     public void scanPath(Path path) throws IOException {
         validateDirectory(path);
 
@@ -212,7 +226,7 @@ public class PhotoLoader implements Closeable {
                     System.out.println(
                             "Scanning start: " + path + ", " + Thread.currentThread().getName()
                                     + ", " + Thread.currentThread().threadId()
-                                    + ", " + System.currentTimeMillis() % 1000000);
+                                    + ", " + System.currentTimeMillis());
                 }
 
                 try (Stream<Path> pathStream = Files.list(path)) {
@@ -232,7 +246,7 @@ public class PhotoLoader implements Closeable {
                     System.out.println(
                             "Scanning Done: " + path + ", " + Thread.currentThread().getName()
                                     + ", " + Thread.currentThread().threadId()
-                                    + ", " + System.currentTimeMillis() % 1000000);
+                                    + ", " + System.currentTimeMillis());
                 }
             });
         }
@@ -271,7 +285,7 @@ public class PhotoLoader implements Closeable {
                 if (DEBUG) {
                     System.out.println("Render ended: " + realPhoto.getName() + " on thread: "
                             + Thread.currentThread().getName() + ", " + Thread.currentThread().threadId()
-                            + ", " + System.currentTimeMillis() % 100000);
+                            + ", " + System.currentTimeMillis());
                 }
                 return image;
             } catch (IOException e) {
@@ -282,6 +296,10 @@ public class PhotoLoader implements Closeable {
         // Ensure that only the first started task is put in the map
         CompletableFuture<Image> existingTask = photoTasks.putIfAbsent(realPhoto, loadTask);
         if (existingTask != null) {
+            if (!loadTask.isDone()) {
+                loadTask.cancel(true);
+            }
+
             return existingTask;
         }
 
@@ -382,7 +400,7 @@ public class PhotoLoader implements Closeable {
         if (DEBUG) {
             System.out.println("Rendering " + photo.getName() + " on thread: "
                     + Thread.currentThread().getName() + ", " + Thread.currentThread().threadId()
-                    + ", " + System.currentTimeMillis() % 1000000);
+                    + ", " + System.currentTimeMillis());
         }
 
         if (photo.getType().equals("gif")) {
