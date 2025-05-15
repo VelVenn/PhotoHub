@@ -132,7 +132,7 @@ public class ViewController {
      * The default constructor is set to private to prevent undefined behaviors
      */
     private ViewController() {
-        loader = new PhotoLoader(0, 0, 0, true);
+        loader = new PhotoLoader(0, 0, 0, 1);
     }
 
     /**

@@ -57,6 +57,8 @@ public class PhotoLoader implements Closeable {
     private volatile boolean isScanDone = false;
     private final Object scanLock = new Object();
 
+    private int timeOut = Integer.MAX_VALUE;
+
     private static final boolean DEBUG = true;
 
     /**
@@ -152,7 +154,7 @@ public class PhotoLoader implements Closeable {
         executor = Executors.newFixedThreadPool(executorSize);
     }
 
-    public PhotoLoader(long cacheWeight, int executorSize, int expire, boolean isWeight) {
+    public PhotoLoader(long cacheWeight, int executorSize, int expire, int timeOut) {
         cache = Caffeine.newBuilder()
                 .initialCapacity(10)
                 .maximumWeight(cacheWeight)
@@ -164,6 +166,7 @@ public class PhotoLoader implements Closeable {
                 })
                 .build();
         executor = Executors.newFixedThreadPool(executorSize);
+        this.timeOut = timeOut > 0 ? timeOut : Integer.MAX_VALUE;
     }
 
     public void scanPath(Path path) throws IOException {
@@ -277,21 +280,22 @@ public class PhotoLoader implements Closeable {
         }
 
         CompletableFuture<Image> loadTask = CompletableFuture.supplyAsync(() -> {
-            try {
-                Image image = render(realPhoto);
-                if (!realPhoto.getType().equals("gif")) {
-                    cache.put(realPhoto, image);
-                }
-                if (DEBUG) {
-                    System.out.println("Render ended: " + realPhoto.getName() + " on thread: "
-                            + Thread.currentThread().getName() + ", " + Thread.currentThread().threadId()
-                            + ", " + System.currentTimeMillis());
-                }
-                return image;
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }, executor);
+                    try {
+                        Image image = render(realPhoto);
+                        if (!realPhoto.getType().equals("gif")) {
+                            cache.put(realPhoto, image);
+                        }
+                        if (DEBUG) {
+                            System.out.println("Render ended: " + realPhoto.getName() + " on thread: "
+                                    + Thread.currentThread().getName() + ", " + Thread.currentThread().threadId()
+                                    + ", " + System.currentTimeMillis());
+                        }
+                        return image;
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }, executor)
+                .orTimeout(timeOut, TimeUnit.SECONDS);
 
         // Ensure that only the first started task is put in the map
         CompletableFuture<Image> existingTask = photoTasks.putIfAbsent(realPhoto, loadTask);
