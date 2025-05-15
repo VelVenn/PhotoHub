@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.loraine.photohub;
+package io.loraine.photohub.demo;
 
 import io.loraine.photohub.photo.PhotoLoader;
 import io.loraine.photohub.viewer.Viewers;
@@ -31,11 +31,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
 
-public class HelloApplication extends Application {
+public class ViewerDemoApplication extends Application {
     @Override
     public void start(Stage stage) throws IOException {
         PhotoLoader photoLoader = new PhotoLoader(
-                200 * 1024 * 1024, 20, 40,true);
+                Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE); // Set all cache strategy failed for demo
 
         Path path = Objects.requireNonNull(Paths.get("path/to/your/photo.jpg"));
 
