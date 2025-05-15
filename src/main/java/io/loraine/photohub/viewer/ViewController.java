@@ -123,7 +123,7 @@ public class ViewController {
     private final PauseTransition hideTimer = new PauseTransition();
 
     private final PhotoLoader loader;
-    private ViewProperty viewProperty;
+    private final ViewProperty viewProperty;
     private Timeline slideShowTimeline;
 
     private static final boolean DEBUG = true;
@@ -132,7 +132,7 @@ public class ViewController {
      * The default constructor is set to private to prevent undefined behaviors
      */
     private ViewController() {
-        loader = new PhotoLoader(0, 0, 0, 1);
+        throw new RuntimeException("Default constructor is not allowed.");
     }
 
     /**
@@ -451,7 +451,7 @@ public class ViewController {
     /**
      * 设置图片在可视区域{@code centerStackPane}内的偏移量。
      * 计算图片与可视区域的尺寸差，将offsetX/offsetY限制在最大允许范围内，
-     * 保证图片不会被拖出可视区域边界。
+     * 防止图片被拖出可视区域边界。
      * <p>
      * 计算方法：
      * <p>
@@ -465,7 +465,7 @@ public class ViewController {
      *      maxY = Math.abs(imgH - paneH) / 2
      * }
      * </pre>
-     * 因为对于{@code StackPane}来说，所有子节点的锚点都是在中心点，
+     * 因为对于{@code StackPane}来说，所有子节点的锚点都是在中心点
      * <p>
      * 3. 设置 {@code -maxX/-maxY <= offsetX/offsetY <= maxX/maxY}
      *
@@ -741,7 +741,7 @@ public class ViewController {
             photoView.setCache(true);
 
             sizeCombo.getItems().addAll("Fit", "20%", "50%", "70%", "100%", "150%", "200%", "300%", "500%");
-            timeCombo.getItems().addAll("1s", "2s", "3s", "5s", "10s", "20s", "30s", "60s");
+            timeCombo.getItems().addAll("1s", "2s", "3s", "5s", "10s", "20s", "30s", "60s", "0.01s");
 
             // throw new IOException("Test exception");
         } catch (Exception e) {
