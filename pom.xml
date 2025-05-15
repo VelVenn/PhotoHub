@@ -81,20 +81,6 @@
       <version>3.1.8</version>
     </dependency>
 
-    <dependency>
-      <groupId>eu.hansolo</groupId>
-      <artifactId>tilesfx</artifactId>
-      <version>21.0.3</version>
-
-      <exclusions>
-        <exclusion>
-          <groupId>org.openjfx</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-      </exclusions>
-
-    </dependency>
-
     <!-- https://mvnrepository.com/artifact/com.twelvemonkeys.imageio/imageio-core -->
     <dependency>
       <groupId>com.twelvemonkeys.imageio</groupId>
@@ -168,10 +154,10 @@
             <!-- Default configuration for running with: mvn clean javafx:run -->
             <id>default-cli</id>
             <configuration>
-              <mainClass>io.loraine.photohub/io.loraine.photohub.HelloApplication</mainClass>
-              <launcher>app</launcher>
-              <jlinkZipName>app</jlinkZipName>
-              <jlinkImageName>app</jlinkImageName>
+              <mainClass>io.loraine.photohub/io.loraine.photohub.main.Main</mainClass>
+              <launcher>PhotoHub</launcher>
+              <jlinkZipName>PhotoHub</jlinkZipName>
+              <jlinkImageName>PhotoHub</jlinkImageName>
               <noManPages>true</noManPages>
               <stripDebug>true</stripDebug>
               <noHeaderFiles>true</noHeaderFiles>
