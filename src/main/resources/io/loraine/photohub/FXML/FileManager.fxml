@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.shape.*?>
+
+<BorderPane stylesheets="@../CSS/FileManagerBasicStyle.css" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="io.loraine.photohub.fileman.FileManagerController">
+
+    <top>
+        <HBox spacing="10" styleClass="top-bar">
+            <padding>
+                <Insets bottom="10" left="20" right="10" top="10" />
+            </padding>
+<!--            <Label fx:id="pathLabel" text="请选择一个文件夹" />-->
+            <VBox spacing="2">
+                <Label fx:id="locationLabel" text="请选择一个文件夹" />
+                <Label fx:id="pathStatisticLabel" text="以显示统计信息" />
+            </VBox>
+
+
+            <!-- 添加伸缩空间 -->
+            <Region HBox.hgrow="ALWAYS" />
+
+            <!-- 添加按钮 -->
+            <Button onAction="#pasteButtonHandler" styleClass="top-button" text="粘贴" />
+            <Button onAction="#handleSelectAll" styleClass="top-button" text="全选" />
+            <Button onAction="#handleCancelSelection" styleClass="top-button" text="取消选择" />
+            <Button onAction="#openSettings" styleClass="top-button" text="设置" />
+        </HBox>
+    </top>
+
+    <center>
+
+        <SplitPane fx:id="mainSplitPane" dividerPositions="0.5" styleClass="no-border-splitpane">
+            <!-- 左侧树视图（固定宽度） -->
+            <TreeView fx:id="fileTree">
+                <padding>
+                    <Insets bottom="5" left="5" right="5" top="5" />
+                </padding>
+            </TreeView>
+
+            <!-- 右侧文件视图（带滚动条） -->
+            <TabPane fx:id="rightTabPane" tabClosingPolicy="UNAVAILABLE">
+                <!-- 文件视图页面 -->
+                <Tab text="文件视图">
+                    <VBox>
+                        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" styleClass="main-scroll-pane" VBox.vgrow="ALWAYS">
+                            <Pane fx:id="selectionPane" styleClass="selection-pane">
+                                <TilePane fx:id="fileTilePane" hgap="15" prefTileHeight="120" prefTileWidth="100" styleClass="tile-pane" vgap="15">
+                                    <padding>
+                                        <Insets bottom="10" left="10" right="10" top="10" />
+                                    </padding>
+                                </TilePane>
+                                <Rectangle fx:id="selectionRect" styleClass="selection-rect" />
+                            </Pane>
+                        </ScrollPane>
+
+                        <!-- 底栏统计信息 -->
+                        <HBox alignment="CENTER_LEFT" spacing="10" styleClass="bottom-bar">
+                            <padding>
+                                <Insets bottom="5" left="10" right="10" top="5" />
+                            </padding>
+                            <Label fx:id="statsLabel" text="未选中任何文件" />
+                        </HBox>
+                    </VBox>
+                </Tab>
+
+                <!-- 设置页面 -->
+                <Tab fx:id="settingsTab" text="设置">
+                    <fx:include source="Settings.fxml" />
+                </Tab>
+
+            </TabPane>
+
+        </SplitPane>
+    </center>
+
+</BorderPane>

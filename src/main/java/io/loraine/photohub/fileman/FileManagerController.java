@@ -1,0 +1,585 @@
+package io.loraine.photohub.fileman;
+
+import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.fxml.FXML;
+import javafx.geometry.Bounds;
+import javafx.geometry.Pos;
+import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.TilePane;
+import javafx.scene.layout.VBox;
+import javafx.scene.shape.Rectangle;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.*;
+
+public class FileManagerController {
+    @FXML
+    private TreeView<File> fileTree;
+    @FXML
+    private TilePane fileTilePane;
+    @FXML
+    private Label pathStatisticLabel;
+    @FXML
+    private Label locationLabel;
+    @FXML
+    private Label statsLabel;
+    @FXML
+    private Pane selectionPane;
+    @FXML
+    private Rectangle selectionRect;
+    @FXML
+    private SplitPane mainSplitPane;
+
+    @FXML
+    private void pasteButtonHandler() {
+        if (App.clipboard.isEmpty()) {
+            return;
+        }
+        var curPath = locationLabel.getText();
+        for (var src : App.clipboard) {
+            var name = src.getName();
+            var dst = new File(curPath + '/' + name);
+            if (dst.exists()) {
+                dst = new File(curPath + '/' + "[new]" + name);
+            }
+            try {
+                Files.copy(Paths.get(src.getAbsolutePath()), Paths.get(dst.getAbsolutePath()), StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException e) {
+                System.out.println("复制失败!");
+            }
+        }
+        showFilesInTilePane(new File(locationLabel.getText()));
+    }
+
+    @FXML
+    private void handleSelectAll() {
+        for (var item : allFileBoxes) {
+            selectItem(item);
+        }
+    }
+
+    @FXML
+    private void handleCancelSelection() {
+        clearSelection();
+    }
+
+    @FXML
+    public void openSettings() {
+        if (rightTabPane.getSelectionModel().getSelectedIndex() == 0) {
+            rightTabPane.getSelectionModel().select(1);
+        } else {
+            rightTabPane.getSelectionModel().select(0);
+        }
+    }
+
+    @FXML
+    private TabPane rightTabPane; // 绑定到右侧的 TabPane
+
+    @FXML
+    private Tab settingsTab; // 绑定到设置页面的 Tab
+
+
+    private double lastManualPosition = -1; // 记录用户手动调整的位置
+    private double dragStartX, dragStartY;
+    private final List<VBox> selectedItems = new ArrayList<>();
+    private final List<VBox> allFileBoxes = new ArrayList<>();
+    private double selectedSize = 0;
+
+    @FXML
+    public void initialize() {
+        setupFileTree();
+        setupSelectionPane();
+        setupTilePane();
+        setupSplitPaneBehavior();
+    }
+
+    private void setupSplitPaneBehavior() {
+        // 初始左侧宽度（像素）
+        double initialLeftWidth = 300;
+
+        // 首次加载时设置初始位置
+        Platform.runLater(() -> {
+            if (mainSplitPane.getWidth() > 0) {
+                lastManualPosition = initialLeftWidth / mainSplitPane.getWidth();
+                mainSplitPane.setDividerPosition(0, lastManualPosition);
+            }
+        });
+
+        // 窗口大小变化时的处理
+        mainSplitPane.widthProperty().addListener((obs, oldVal, newVal) -> {
+            if (lastManualPosition >= 0 && newVal.doubleValue() > 0) {
+                // 保持左侧绝对宽度不变
+                double currentLeftWidth = lastManualPosition * oldVal.doubleValue();
+                lastManualPosition = currentLeftWidth / newVal.doubleValue();
+                mainSplitPane.setDividerPosition(0, lastManualPosition);
+            }
+        });
+
+        // 记录用户手动调整的位置
+        mainSplitPane.getDividers().get(0).positionProperty().addListener((obs, oldVal, newVal) -> {
+            if (!mainSplitPane.getScene().getWindow().isShowing()) return;
+
+            // 检查是否是用户拖动（而非我们的程序调整）
+            if (Math.abs(newVal.doubleValue() - lastManualPosition) > 0.001) {
+                lastManualPosition = newVal.doubleValue();
+            }
+        });
+    }
+
+    // 初始化文件树
+    private void setupFileTree() {
+        TreeItem<File> rootItem = new TreeItem<>(new File("/"));
+        rootItem.setExpanded(true);
+        fileTree.setRoot(rootItem);
+        fileTree.setShowRoot(false);
+
+        fileTree.setCellFactory(tv -> new TreeCell<>() {
+            @Override
+            protected void updateItem(File item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    // 仅显示文件夹名称
+                    setText(item.getName());
+                }
+            }
+        });
+
+
+        File[] roots = File.listRoots();
+
+        for (File root : roots) {
+            if (root.isDirectory()) rootItem.getChildren().add(createNode(root));
+        }
+
+        fileTree.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null) {
+                File selectedFile = newVal.getValue();
+                if (selectedFile.isDirectory()) {
+                    showFilesInTilePane(selectedFile);
+                } else {
+                    clearTilePane();
+                }
+            }
+        });
+    }
+
+    // 初始化选择面板
+    private void setupSelectionPane() {
+        selectionRect.setManaged(false);
+        selectionPane.setOnMousePressed(this::handleMousePressed);
+        selectionPane.setOnMouseDragged(this::handleMouseDragged);
+        selectionPane.setOnMouseReleased(this::handleMouseReleased);
+    }
+
+    // 初始化TilePane
+    private void setupTilePane() {
+        Platform.runLater(() -> {
+            fileTilePane.setAlignment(Pos.TOP_LEFT);
+        });
+
+        fileTilePane.prefWidthProperty().bind(
+                selectionPane.widthProperty().subtract(20) // 减去padding
+        );
+
+        selectionPane.widthProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal.doubleValue() > 0 && !allFileBoxes.isEmpty()) {
+                Platform.runLater(this::updateTilePaneColumns);
+            }
+        });
+    }
+
+    // 创建树节点（懒加载）
+    private TreeItem<File> createNode(final File file) {
+        return new TreeItem<File>(file) {
+            private boolean isLeaf;
+            private boolean isFirstTimeChildren = true;
+            private boolean isFirstTimeLeaf = true;
+
+            @Override
+            public ObservableList<TreeItem<File>> getChildren() {
+                if (isFirstTimeChildren) {
+                    isFirstTimeChildren = false;
+                    super.getChildren().setAll(buildChildren(this));
+                }
+                return super.getChildren();
+            }
+
+            @Override
+            public boolean isLeaf() {
+                if (isFirstTimeLeaf) {
+                    isFirstTimeLeaf = false;
+                    isLeaf = !file.isDirectory();
+                }
+                return isLeaf;
+            }
+
+            private ObservableList<TreeItem<File>> buildChildren(TreeItem<File> item) {
+                File f = item.getValue();
+                if (f != null && f.isDirectory()) {
+                    File[] files = f.listFiles();
+
+                    if (files != null) {
+                        Arrays.sort(files, Comparator.comparing(File::getName));
+                        ObservableList<TreeItem<File>> children = FXCollections.observableArrayList();
+                        for (File childFile : files) {
+                            if (childFile.isDirectory()) children.add(createNode(childFile));
+                        }
+                        return children;
+                    }
+                }
+                return FXCollections.emptyObservableList();
+            }
+        };
+    }
+
+    // 显示文件到TilePane
+    private void showFilesInTilePane(File directory) {
+        clearTilePane();
+
+        File[] files = directory.listFiles();
+        if (files == null) return;
+        Arrays.sort(files, Comparator.comparing(File::getName));
+        fileTilePane.setPrefColumns(-1); // 禁用初始列数设置
+
+        int fileCount = 0;
+        double fileSize = 0;
+        for (File file : files) {
+            if (file.isDirectory()) continue;
+            fileCount++;
+            fileSize += file.length() / (1024.0 * 1024.0);
+            VBox fileBox = createFileItem(file);
+            fileTilePane.getChildren().add(fileBox);
+            allFileBoxes.add(fileBox);
+        }
+
+        locationLabel.setText(directory.getAbsolutePath());
+        pathStatisticLabel.setText(String.format("共有 %d 个文件, 总大小 %.2f MB", fileCount, fileSize));
+
+        Platform.runLater(() -> {
+            updateTilePaneColumns();
+            fileTilePane.requestLayout();
+        });
+    }
+
+    // 创建文件显示项
+    private VBox createFileItem(File file) {
+        VBox fileBox = new VBox(5);
+        fileBox.setAlignment(Pos.CENTER);
+        fileBox.getStyleClass().add("file-item");
+        fileBox.setMinSize(100, 120);
+        fileBox.setPrefSize(100, 120);
+        fileBox.setMaxSize(100, 120);
+
+        ImageView icon = new ImageView();
+        icon.setFitWidth(40);
+        icon.setFitHeight(40);
+        icon.setImage(loadIcon(file.isDirectory()));
+
+        Label fileNameLabel = new Label(file.getName());
+        fileNameLabel.setMaxWidth(95);
+        fileNameLabel.setWrapText(true);
+        fileNameLabel.setAlignment(Pos.CENTER);
+
+        fileBox.getChildren().addAll(icon, fileNameLabel);
+        fileBox.setUserData(file);
+
+        fileBox.setOnMouseClicked(event -> {
+            if (event.getButton() == MouseButton.PRIMARY) {
+                handleFileItemClick(fileBox, event);
+            }
+        });
+
+        ContextMenu contextMenu = new ContextMenu();
+        MenuItem deleteMenuItem = new MenuItem("删除");
+        deleteMenuItem.setOnAction(event -> {
+            System.out.println("删除文件: " + file.getAbsolutePath());
+            // 显示确认弹窗
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("确认删除");
+            alert.setHeaderText("您确定要删除所选文件吗？");
+
+            alert.showAndWait().ifPresent(response -> {
+                if (response == ButtonType.OK) {
+                    file.delete();
+                    showFilesInTilePane(new File(locationLabel.getText()));
+                }
+            });
+
+        });
+        MenuItem renameMenuItem = new MenuItem("重命名");
+        renameMenuItem.setOnAction(event -> {
+            System.out.println("重命名文件: " + file.getAbsolutePath());
+            var parentPath = file.getParent();
+
+            // 创建重命名弹窗
+            TextInputDialog dialog = new TextInputDialog();
+            dialog.setTitle("重命名");
+            dialog.setHeaderText("请输入新的文件名, 不包含拓展名");
+            dialog.setContentText("新文件名:");
+
+            // 显示弹窗并获取用户输入
+            Optional<String> result = dialog.showAndWait();
+
+            // 如果用户输入了内容
+            result.ifPresent(newFileName -> {
+                if (newFileName.trim().isEmpty()) {
+                    statsLabel.setText("无效的文件名");
+                    return;
+                }
+
+                // 执行重命名逻辑
+                if (selectedItems.size() == 1) {
+                    var newPath = parentPath + "/" + newFileName;
+                    var ext = App.getFileExtension(file.getName());
+                    System.out.println(newPath + ext);
+                    file.renameTo(new File(newPath + ext));
+                } else {
+                    int id = 1;
+                    for (var item : selectedItems) {
+                        File fileItem = (File) item.getUserData();
+                        var newPath = parentPath + "/" + newFileName;
+                        var ext = App.getFileExtension(fileItem.getName());
+                        System.out.println(newPath + "." + id + ext);
+                        file.renameTo(new File(newPath + "." + id + ext));
+                        id++;
+                    }
+                }
+                showFilesInTilePane(new File(locationLabel.getText()));
+            });
+
+        });
+        MenuItem copyMenuItem = new MenuItem("复制");
+        copyMenuItem.setOnAction(event -> {
+            for (var item : selectedItems) {
+                App.clipboard.add((File) (item.getUserData()));
+            }
+        });
+        contextMenu.getItems().addAll(
+                copyMenuItem,
+                renameMenuItem,
+                deleteMenuItem
+        );
+
+        // 绑定右键菜单到文件项
+        fileBox.setOnContextMenuRequested(event -> {
+            if (!selectedItems.contains(fileBox)) {
+                clearSelection();
+                selectItem(fileBox);
+            }
+            contextMenu.show(fileBox, event.getScreenX(), event.getScreenY());
+            event.consume(); // 阻止默认行为
+        });
+
+
+        return fileBox;
+    }
+
+    // 加载图标
+    // TODO 为什么只显示文件图标？
+    private Image loadIcon(boolean isDirectory) {
+        String iconType = isDirectory ? "folder.png"
+                : "file.png";
+        String iconPath = "/io/loraine/photohub/Default_Resources/" + iconType;
+
+        try {
+            var iconURL = Objects.requireNonNull(getClass().getResource(iconPath));
+            return new Image(iconURL.toString());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    // 更新TilePane列数
+    private void updateTilePaneColumns() {
+        double availableWidth = fileTilePane.getWidth() - 20; // 减去padding
+        if (availableWidth > 0) {
+            double itemWidth = 100 + 15; // 项目宽度 + hgap
+            int columns = (int) (availableWidth / itemWidth);
+            columns = Math.max(3, columns); // 最小保持3列
+            fileTilePane.setPrefColumns(columns);
+        }
+    }
+
+    // 清空TilePane
+    private void clearTilePane() {
+        fileTilePane.getChildren().clear();
+        allFileBoxes.clear();
+        clearSelection();
+    }
+
+    // 鼠标按下事件
+    private void handleMousePressed(MouseEvent event) {
+        if (event.getButton() == MouseButton.PRIMARY) {
+            dragStartX = event.getX();
+            dragStartY = event.getY();
+
+            boolean clickedOnItem = allFileBoxes.stream()
+                    .anyMatch(box -> box.getBoundsInParent().contains(event.getX(), event.getY()));
+
+            if (!clickedOnItem && !event.isControlDown() && !event.isShiftDown()) {
+                clearSelection();
+            }
+
+            initSelectionRect(dragStartX, dragStartY);
+        }
+    }
+
+    // 鼠标拖动事件
+    private void handleMouseDragged(MouseEvent event) {
+        if (event.getButton() == MouseButton.PRIMARY) {
+            updateSelectionRect(event.getX(), event.getY());
+            updateSelection(selectionRect.getBoundsInParent());
+        }
+    }
+
+    // 鼠标释放事件
+    private void handleMouseReleased(MouseEvent event) {
+        if (event.getButton() == MouseButton.PRIMARY) {
+            selectionRect.setVisible(false);
+
+            if (isClickEvent(event)) {
+                handleSingleClickSelection(event);
+            }
+        }
+    }
+
+    // 初始化选择矩形
+    private void initSelectionRect(double x, double y) {
+        selectionRect.setX(x);
+        selectionRect.setY(y);
+        selectionRect.setWidth(0);
+        selectionRect.setHeight(0);
+        selectionRect.setVisible(true);
+    }
+
+    // 更新选择矩形
+    private void updateSelectionRect(double x, double y) {
+        selectionRect.setX(Math.min(dragStartX, x));
+        selectionRect.setY(Math.min(dragStartY, y));
+        selectionRect.setWidth(Math.abs(x - dragStartX));
+        selectionRect.setHeight(Math.abs(y - dragStartY));
+    }
+
+    // 判断是否是点击事件
+    private boolean isClickEvent(MouseEvent event) {
+        return Math.abs(event.getX() - dragStartX) < 5 &&
+                Math.abs(event.getY() - dragStartY) < 5;
+    }
+
+    // 处理单选点击
+    private void handleSingleClickSelection(MouseEvent event) {
+        allFileBoxes.stream()
+                .filter(box -> box.getBoundsInParent().contains(event.getX(), event.getY()))
+                .findFirst()
+                .ifPresent(fileBox -> handleFileItemClick(fileBox, event));
+    }
+
+    // 处理文件项点击
+    private void handleFileItemClick(VBox fileBox, MouseEvent event) {
+        if (event.isControlDown()) {
+            toggleSelection(fileBox);
+        } else if (event.isShiftDown() && !selectedItems.isEmpty()) {
+            rangeSelect(fileBox);
+        } else if (!selectedItems.contains(fileBox)) {
+            clearSelection();
+            selectItem(fileBox);
+        }
+    }
+
+    // 范围选择
+    private void rangeSelect(VBox endItem) {
+        int startIndex = allFileBoxes.indexOf(selectedItems.get(selectedItems.size() - 1));
+        int endIndex = allFileBoxes.indexOf(endItem);
+
+        if (startIndex != -1 && endIndex != -1) {
+            int min = Math.min(startIndex, endIndex);
+            int max = Math.max(startIndex, endIndex);
+
+            for (int i = min; i <= max; i++) {
+                VBox item = allFileBoxes.get(i);
+                if (!selectedItems.contains(item)) {
+                    selectItem(item);
+                }
+            }
+        }
+    }
+
+    // 选择项目
+    private void selectItem(VBox fileBox) {
+        if (!selectedItems.contains(fileBox)) {
+            selectedItems.add(fileBox);
+            selectedSize += ((File) (fileBox.getUserData())).length() / (1024.0 * 1024.0);
+            fileBox.getStyleClass().add("selected");
+        }
+        statsLabel.setText(String.format("选中文件数: %d, 总大小: %.2f MB", selectedItems.size(), selectedSize));
+    }
+
+    // 取消选择
+    private void deselectItem(VBox fileBox) {
+        selectedItems.remove(fileBox);
+        selectedSize -= ((File) (fileBox.getUserData())).length() / (1024.0 * 1024.0);
+        fileBox.getStyleClass().remove("selected");
+        statsLabel.setText(String.format("选中文件数: %d, 总大小: %.2f MB", selectedItems.size(), selectedSize));
+    }
+
+    // 切换选择状态
+    private void toggleSelection(VBox fileBox) {
+        if (selectedItems.contains(fileBox)) {
+            deselectItem(fileBox);
+        } else {
+            selectItem(fileBox);
+        }
+    }
+
+    // 清空选择
+    private void clearSelection() {
+        selectedSize = 0;
+        selectedItems.forEach(item -> item.getStyleClass().remove("selected"));
+        selectedItems.clear();
+        statsLabel.setText("选中文件数: 0, 总大小: 0 KB");
+    }
+
+    private void updateSelection(Bounds selectionBounds) {
+        // 临时记录当前在选区内的项目
+        List<VBox> newlySelected = new ArrayList<>();
+
+        for (VBox fileBox : allFileBoxes) {
+            // 检查项目是否与选择矩形相交
+            boolean isInSelection = fileBox.getBoundsInParent().intersects(
+                    selectionBounds.getMinX(),
+                    selectionBounds.getMinY(),
+                    selectionBounds.getWidth(),
+                    selectionBounds.getHeight());
+
+            if (isInSelection) {
+                newlySelected.add(fileBox);
+                // 如果不在已选列表中则添加
+                if (!selectedItems.contains(fileBox)) {
+                    selectItem(fileBox);
+                }
+            }
+        }
+
+        // 找出需要取消选择的项目（之前选中但不在当前选区内的）
+        List<VBox> toDeselect = new ArrayList<>(selectedItems);
+        toDeselect.removeAll(newlySelected);
+
+        // 取消选择这些项目
+        for (VBox fileBox : toDeselect) {
+            deselectItem(fileBox);
+        }
+    }
+}
