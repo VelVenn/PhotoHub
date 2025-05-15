@@ -1,3 +1,21 @@
+/**
+ * Photohub ---- To View Some S3xy Photos
+ * Copyright (C) 2025 Loraine, Yui
+ * <p>
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * <p>
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * <p>
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package io.loraine.photohub.viewer;
 
 import io.loraine.photohub.photo.Photo;
@@ -12,17 +30,20 @@ import javafx.beans.property.ReadOnlyStringProperty;
 import javafx.beans.value.ChangeListener;
 
 import javafx.fxml.FXML;
+import javafx.scene.Cursor;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 
+import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 
 import javafx.util.Duration;
@@ -89,7 +110,6 @@ public class ViewController {
     @FXML
     private Label loadMsg;
 
-
     private final Label photoSize = new Label("N/A");
     private final Label photoName = new Label("N/A");
     private final Label photoLastModified = new Label("N/A");
@@ -97,7 +117,6 @@ public class ViewController {
     private final Label photoType = new Label("N/A");
     private final Label photoZoom = new Label("N/A %");
     private final Label photoIdx = new Label("N/A of N/A");
-
 
     private final Separator errSeparator = new Separator(VERTICAL);
     private final Label errMsg = new Label();
@@ -113,7 +132,7 @@ public class ViewController {
      * The default constructor is set to private to prevent undefined behaviors
      */
     private ViewController() {
-        loader = new PhotoLoader(0, 0, true);
+        loader = new PhotoLoader(0, 0, 0, true);
     }
 
     /**
@@ -138,11 +157,12 @@ public class ViewController {
         viewProperty = new ViewProperty(loader, new Photo(initPhotoPath, true));
     }
 
-    @FXML
     private void toNextPhoto() {
         if (isIndexAndCurPhotoInvalid()) {
             return;
         }
+
+        viewProperty.isFittedProperty().set(true);
 
         Photo curPhoto = viewProperty.curPhotoProperty().get();
 
@@ -155,11 +175,12 @@ public class ViewController {
         viewProperty.curPhotoProperty().set(newPhoto);
     }
 
-    @FXML
     private void toPrevPhoto() {
         if (isIndexAndCurPhotoInvalid()) {
             return;
         }
+
+        viewProperty.isFittedProperty().set(true);
 
         Photo curPhoto = viewProperty.curPhotoProperty().get();
 
@@ -172,7 +193,6 @@ public class ViewController {
         viewProperty.curPhotoProperty().set(newPhoto);
     }
 
-    @FXML
     private void playPhoto() {
         if (isIndexAndCurPhotoInvalid()) {
             return;
@@ -180,34 +200,6 @@ public class ViewController {
 
         boolean curPlayStat = !viewProperty.isPlayingProperty().get();
         viewProperty.isPlayingProperty().set(curPlayStat);
-    }
-
-    private double getPhotoViewScale(Image img) {
-        if (img == null) {
-            return -1;
-        }
-
-        double imgW = img.getWidth();
-        double imgH = img.getHeight();
-        if (imgW <= 0 || imgH <= 0) {
-            return -1;
-        }
-
-        double fitW = photoView.getFitWidth();
-        double fitH = photoView.getFitHeight();
-        double scale = 1.0;
-
-        // Calculate the fit scale
-        if (fitW > 0 || fitH > 0) {
-            double wRatio = fitW > 0 ? fitW / imgW : Double.POSITIVE_INFINITY;
-            double hRatio = fitH > 0 ? fitH / imgH : Double.POSITIVE_INFINITY;
-            scale = Math.min(wRatio, hRatio);
-        }
-
-        // Overlay scaleX
-        scale *= photoView.getScaleX(); // scaleX should be same as scaleY when preserveRatio is true
-
-        return scale;
     }
 
     private void startSlideShow() {
@@ -238,31 +230,45 @@ public class ViewController {
         }
     }
 
-    private Duration parseTimeToSeconds(String timeString) {
-        if (timeString == null || !timeString.endsWith("s")) {
+    /**
+     * Parse a time string to seconds
+     *
+     * @param timeStr Time string, e.g. "1s", "2s", "3s"
+     * @return {@code javafx.util.Duration} in seconds if {@code timeStr} is valid
+     * else return {@code javafx.util.Duration.seconds(1.0)}
+     */
+    private Duration parseTimeToSeconds(String timeStr) {
+        if (timeStr == null || !timeStr.endsWith("s")) {
             return Duration.seconds(1.0);
         }
 
         try {
-            double seconds = Double.parseDouble(timeString.substring(0, timeString.length() - 1));
+            double seconds = Double.parseDouble(timeStr.substring(0, timeStr.length() - 1));
             seconds = seconds > 0 ? seconds : 1.0;
 
             return Duration.seconds(seconds);
         } catch (NumberFormatException e) {
-            String msg = String.format("Invalid time string: %s", timeString);
+            String msg = String.format("Invalid time string: %s", timeStr);
             showErrorLater(msg, Duration.seconds(10));
 
-            if (DEBUG) System.err.println(msg + "Caused by: " + e.getCause().getMessage());
+            if (DEBUG)
+                System.err.println(msg + "Caused by: " + e.getCause().getMessage());
             return Duration.seconds(1.0);
         }
     }
 
+    /**
+     * 检查当前的索引和照片是否无效
+     *
+     * @return 返回 {@code true} 如果索引或照片无效，否则返回 {@code false}
+     */
     private boolean isIndexAndCurPhotoInvalid() {
         if (!loader.isIndexBasedUsable()) {
             String msg = "Indexing is failed or still in progress.";
             showError(msg, Duration.seconds(15));
 
-            if (DEBUG) System.err.println(msg);
+            if (DEBUG)
+                System.err.println(msg);
             return true;
         }
 
@@ -271,11 +277,258 @@ public class ViewController {
             String msg = "Current photo is null.";
             showError(msg, Duration.seconds(15));
 
-            if (DEBUG) System.err.println(msg);
+            if (DEBUG)
+                System.err.println(msg);
             return true;
         }
 
         return false;
+    }
+
+    private void zoomScaleByCombo() {
+        String selected = String.valueOf(sizeCombo.getValue());
+        double scale = parsePercentLiteral(selected);
+
+        setZoom(scale);
+    }
+
+    /**
+     * 将当前图片显示比例放大 {@code 10%}，最大 {@code 500%}
+     */
+    private void zoomInScale() {
+        double scale = getPhotoViewScale(photoView.getImage());
+
+        if (scale > 0) {
+            scale = Math.min(5.0, scale + 0.1);
+        }
+
+        setZoom(scale);
+    }
+
+    /**
+     * 如果当前图片显示比例大于 {@code 10%}，则缩小 {@code 10%}，最小 {@code 10%}
+     */
+    private void zoomOutScale() {
+        double scale = getPhotoViewScale(photoView.getImage());
+
+        if (scale > 0.1) {
+            scale = Math.max(0.1, scale - 0.1);
+        }
+
+        setZoom(scale);
+    }
+
+    private void zoomBySlider() {
+        viewProperty.isFittedProperty().set(false);
+        double scale = zoomSlider.getValue();
+        setZoom(scale);
+    }
+
+    /**
+     * 设置图片的缩放模式与缩放比例
+     *
+     * @param scale 缩放比例，如果大于 {@code 0} 则为自由缩放模式，否则为自适应缩放模式。
+     *              {@code scale} 大于 {@code 0} 时，将当前图片的缩放比例设置为
+     *              {@code scale}
+     */
+    private void setZoom(double scale) {
+        photoView.fitHeightProperty().unbind();
+        photoView.fitWidthProperty().unbind();
+
+        if (scale > 0) {
+            // Free scale mode
+            viewProperty.isFittedProperty().set(false);
+
+            Image image = photoView.getImage();
+            if (image != null) {
+                photoView.setFitWidth(image.getWidth());
+                photoView.setFitHeight(image.getHeight());
+
+                photoView.setScaleX(scale);
+                photoView.setScaleY(scale);
+            } else {
+                String msg = "Image is unloaded.";
+                // showError(msg, Duration.seconds(3));
+
+                if (DEBUG) System.err.println(msg);
+            }
+            clampViewOffset();
+        } else {
+            viewProperty.isFittedProperty().set(true);
+
+            photoView.fitWidthProperty().bind(centerStackPane.widthProperty());
+            photoView.fitHeightProperty().bind(centerStackPane.heightProperty());
+
+            photoView.setScaleX(1.0);
+            photoView.setScaleY(1.0);
+
+            photoView.setTranslateX(0);
+            photoView.setTranslateY(0);
+        }
+    }
+
+    /**
+     * 控制图片在 {@code centerStackPane} 中的偏移量，防止当前图片在缩放时超出
+     * 可视区域，即 {@code centerStackPane} 的边界
+     */
+    private void clampViewOffset() {
+        double offsetX = photoView.getTranslateX();
+        double offsetY = photoView.getTranslateY();
+
+        setViewOffset(offsetX, offsetY);
+    }
+
+    /**
+     * Parse a percent string to a double value
+     *
+     * @param percentStr Percent string, e.g. "20%", "50%", "100%"
+     * @return {@code double} value of the percent string if valid, else return -1.0
+     */
+    private double parsePercentLiteral(String percentStr) {
+        if (percentStr == null || !percentStr.endsWith("%")) {
+            return -1.0;
+        }
+
+        if (percentStr.equals("Fit")) {
+            return -1.0;
+        }
+
+        try {
+            double percent = Double.parseDouble(percentStr.substring(0, percentStr.length() - 1)) / 100.0;
+            percent = percent > 0 ? percent : -1.0;
+
+            return percent;
+        } catch (NumberFormatException e) {
+            String msg = String.format("Invalid percent string: %s", percentStr);
+            showErrorLater(msg, Duration.seconds(10));
+
+            if (DEBUG)
+                System.err.println(msg + "Caused by: " + e.getCause().getMessage());
+            return -1.0;
+        }
+    }
+
+    private final double[] mouseAnchor = {0, 0}; // 鼠标移动前的坐标
+    private final double[] viewAnchor = {0, 0}; // 图片移动前的位移
+
+    /**
+     * 记录鼠标在{@code photoView}内部按下时的坐标和图片的位移，同时改变光标样式为移动
+     */
+    private void mousePressedOnView(MouseEvent event) {
+        if (!viewProperty.isFittedProperty().get()) {
+            mouseAnchor[0] = event.getSceneX();
+            mouseAnchor[1] = event.getSceneY();
+
+            viewAnchor[0] = photoView.getTranslateX();
+            viewAnchor[1] = photoView.getTranslateY();
+
+            photoView.setCursor(Cursor.MOVE);
+        }
+    }
+
+    /**
+     * 鼠标释放时，恢复鼠标的光标
+     */
+    private void mouseReleasedOnView() {
+        photoView.setCursor(Cursor.DEFAULT);
+    }
+
+    /**
+     * 鼠标在{@code photoView}内部拖动时，计算鼠标的位移然后更新图片的位移
+     */
+    private void mouseDraggedOnView(MouseEvent event) {
+        if (!viewProperty.isFittedProperty().get()) {
+            double deltaX = event.getSceneX() - mouseAnchor[0];
+            double deltaY = event.getSceneY() - mouseAnchor[1];
+
+            double offsetX = viewAnchor[0] + deltaX;
+            double offsetY = viewAnchor[1] + deltaY;
+
+            setViewOffset(offsetX, offsetY);
+        }
+    }
+
+    /**
+     * 设置图片在可视区域{@code centerStackPane}内的偏移量。
+     * 计算图片与可视区域的尺寸差，将offsetX/offsetY限制在最大允许范围内，
+     * 保证图片不会被拖出可视区域边界。
+     * <p>
+     * 计算方法：
+     * <p>
+     * 1. 获取{@code centerStackPane}的宽高{@code paneW / paneH}
+     * 以及图片相对于{@code centerStackPane}缩放后的宽高{@code imgW / imgH}
+     * <p>
+     * 2. 计算图片在{@code centerStackPane}中的最大允许偏移量, 公式为
+     * <pre>
+     * {@code
+     *      maxX = Math.abs(imgW - paneW) / 2
+     *      maxY = Math.abs(imgH - paneH) / 2
+     * }
+     * </pre>
+     * 因为对于{@code StackPane}来说，所有子节点的锚点都是在中心点，
+     * <p>
+     * 3. 设置 {@code -maxX/-maxY <= offsetX/offsetY <= maxX/maxY}
+     *
+     * @param offsetX 图片在 {@code centerStackPane} 中的水平位移
+     * @param offsetY 图片在 {@code centerStackPane} 中的垂直位移
+     */
+    private void setViewOffset(double offsetX, double offsetY) {
+        double imgW = photoView.getBoundsInParent().getWidth();
+        double imgH = photoView.getBoundsInParent().getHeight();
+        double paneW = centerStackPane.getWidth();
+        double paneH = centerStackPane.getHeight();
+
+        double maxX = Math.abs(imgW - paneW) / 2;
+        double maxY = Math.abs(imgH - paneH) / 2;
+
+        if (offsetX > maxX) {
+            offsetX = maxX;
+        } else if (offsetX < -maxX) {
+            offsetX = -maxX;
+        }
+
+        if (offsetY > maxY) {
+            offsetY = maxY;
+        } else if (offsetY < -maxY) {
+            offsetY = -maxY;
+        }
+
+        photoView.setTranslateX(offsetX);
+        photoView.setTranslateY(offsetY);
+    }
+
+    /**
+     * 获取图片相对于{@code photoView}的缩放比例
+     *
+     * @param img 当前图片
+     * @return {@code img}有效时返回缩放比例，否则返回{@code -1}
+     */
+    private double getPhotoViewScale(Image img) {
+        if (img == null) {
+            return -1;
+        }
+
+        double imgW = img.getWidth();
+        double imgH = img.getHeight();
+        if (imgW <= 0 || imgH <= 0) {
+            return -1;
+        }
+
+        double fitW = photoView.getFitWidth();
+        double fitH = photoView.getFitHeight();
+        double scale = 1.0;
+
+        // Calculate the fit scale
+        if (fitW > 0 || fitH > 0) {
+            double wRatio = fitW > 0 ? fitW / imgW : Double.POSITIVE_INFINITY;
+            double hRatio = fitH > 0 ? fitH / imgH : Double.POSITIVE_INFINITY;
+            scale = Math.min(wRatio, hRatio);
+        }
+
+        // Overlay scaleX
+        scale *= photoView.getScaleX(); // scaleX should be same as scaleY when preserveRatio is true
+
+        return scale;
     }
 
     private void showError(String msg, int delayMillis) {
@@ -390,7 +643,8 @@ public class ViewController {
                     stopSlideShow();
 
                     viewProperty.isPlayingProperty().set(false);
-                    if (DEBUG) System.err.println(msg);
+                    if (DEBUG)
+                        System.err.println(msg);
                 }
             });
 
@@ -411,8 +665,7 @@ public class ViewController {
                     new Separator(VERTICAL),
                     photoIdx,
                     new Separator(VERTICAL),
-                    photoLastModified
-            );
+                    photoLastModified);
 
             photoName.textProperty().bind(viewProperty.displayNameProperty());
             photoSize.textProperty().bind(viewProperty.displaySizeProperty());
@@ -425,6 +678,12 @@ public class ViewController {
             // Prevent the centerStackPane from overflow to overlap the topHBox
             // The BorderPane won't clip the center region automatically
             centerStackPane.setMinSize(0, 0);
+
+            Rectangle clip = new Rectangle();
+            clip.widthProperty().bind(centerStackPane.widthProperty());
+            clip.heightProperty().bind(centerStackPane.heightProperty());
+            centerStackPane.setClip(clip);
+
             rootPane.setMinSize(0, 0);
 
             loadMsg.visibleProperty().bind(viewProperty.isImgLoadingProperty());
@@ -432,9 +691,39 @@ public class ViewController {
             // TODO Flickers will happened when set Image to fast, need new display cache strategy
             photoView.imageProperty().bind(viewProperty.displayImgProperty());
 
+            photoView.setOnMousePressed(this::mousePressedOnView);
+            photoView.setOnMouseReleased(e -> mouseReleasedOnView());
+            photoView.setOnMouseDragged(this::mouseDraggedOnView);
+
+            sizeCombo.showingProperty().addListener((o, oldV, newV) -> {
+                if (newV) {
+                    sizeCombo.getSelectionModel().clearSelection();
+                }
+
+                if (!newV && !sizeCombo.getSelectionModel().isEmpty()) {
+                    zoomScaleByCombo();
+                }
+            });
+
+            viewProperty.isFittedProperty().addListener((o, oldV, newV) -> {
+                if (newV) {
+                    setZoom(-1.0);
+                }
+            });
+
+            zoomInButton.setOnMousePressed(event -> zoomInScale());
+            zoomOutButton.setOnMousePressed(event -> zoomOutScale());
+
+            zoomSlider.setOnMouseDragged(e -> zoomBySlider());
+            zoomSlider.setOnMouseReleased(e -> zoomBySlider());
+
             ChangeListener<Object> scaleListener = (o, oldV, newV) -> {
-                double scale = getPhotoViewScale(photoView.getImage());
+                Image curImg = photoView.getImage();
+
+                double scale = getPhotoViewScale(curImg);
                 viewProperty.curZoomProperty().set(scale);
+
+                zoomSlider.setValue(scale);
             };
             photoView.imageProperty().addListener(scaleListener);
             photoView.fitWidthProperty().addListener(scaleListener);
@@ -454,19 +743,6 @@ public class ViewController {
             sizeCombo.getItems().addAll("Fit", "20%", "50%", "70%", "100%", "150%", "200%", "300%", "500%");
             timeCombo.getItems().addAll("1s", "2s", "3s", "5s", "10s", "20s", "30s", "60s");
 
-            // Loading methods below
-            viewProperty
-                    .initScanDir()
-                    .exceptionally(ex -> {
-                        if (DEBUG) System.err.println(ex.getMessage());
-                        return null;
-                    });
-
-            if (DEBUG) {
-                System.out.println(photoView.getFitHeight());
-                System.out.println(centerStackPane.getHeight());
-            }
-
             // throw new IOException("Test exception");
         } catch (Exception e) {
             showError(e.getMessage(), 2000);
@@ -474,5 +750,33 @@ public class ViewController {
                 System.err.println(e.getClass().getName() + ": " + e.getMessage() + " Cause: " + e.getCause());
             }
         }
+
+        Platform.runLater(() -> {
+            if (DEBUG) {
+                System.out.println("Initialize complete");
+                System.out.println(photoView.getFitHeight());
+                System.out.println(centerStackPane.getHeight());
+            }
+
+            viewProperty
+                    .initScanDir()
+                    .thenRun(() -> {
+                        int curIndex = loader.getPhotoIndex(viewProperty.curPhotoProperty().get());
+                        loader.preLoadPhotosAsync(curIndex, 1);
+                    })
+                    .exceptionally(ex -> {
+                        if (DEBUG)
+                            System.err.println(ex.getMessage());
+                        return null;
+                    });
+
+            // viewProperty.loadImg(viewProperty.curPhotoProperty().get());
+            // viewProperty.loadPhotoMeta(viewProperty.curPhotoProperty().get());
+
+            // 注意：如果初始化时需要依赖控件的确切尺寸、布局或其它在界面显示后才确定的属性，
+            // 或者其他一些要初始化但是非常耗时的操作，比如扫描文件，加载图片等操作, 应当在
+            // initialize 方法末尾用 Platform.runLater 包裹相关代码。这样可以确保这些
+            // 属性和数据已经被 JavaFX 布局引擎正确计算和赋值，以及加快界面显示的速度。
+        });
     }
 }
