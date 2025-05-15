@@ -1,3 +1,21 @@
+/*
+ * Photohub ---- To View Some S3xy Photos
+ * Copyright (C) 2025 Loraine, Yui
+ * <p>
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * <p>
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * <p>
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 /* Top HBox in Photoview */
 .top-hbox {
     -fx-background-color: #e4f2f7;
@@ -73,6 +91,7 @@
     -fx-border-radius: 4;
     -fx-border-color: #b0d9e8;
     -fx-border-width: 1;
+    -fx-pref-width: 85;
     /* Removed transition */
 }
 
@@ -87,6 +106,7 @@
 }
 
 .jfx-combo-box .list-view {
+    -fx-pref-width: 85;
     -fx-background-color: #ffffff;
     -fx-border-color: #b0d9e8;
     -fx-border-width: 1;
@@ -108,7 +128,7 @@
 }
 
 .jfx-combo-box .list-cell:filled:selected {
-    -fx-background-color: #a1efff;
+    /*-fx-background-color: #a1efff;*/
     /* Bright blue for selected item */
     -fx-text-fill: #001f25;
     -fx-font-weight: normal;

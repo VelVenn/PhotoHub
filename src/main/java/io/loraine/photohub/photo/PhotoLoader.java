@@ -40,7 +40,9 @@ import java.util.List;
 
 import java.io.IOException;
 
-public class PhotoLoader {
+import java.io.Closeable;
+
+public class PhotoLoader implements Closeable {
     private final Cache<Photo, Image> cache;
 
     private final ExecutorService executor;
@@ -150,6 +152,20 @@ public class PhotoLoader {
         executor = Executors.newFixedThreadPool(executorSize);
     }
 
+    public PhotoLoader(long cacheWeight, int executorSize, int expire, boolean isWeight) {
+        cache = Caffeine.newBuilder()
+                .initialCapacity(10)
+                .maximumWeight(cacheWeight)
+                .expireAfterAccess(expire, TimeUnit.SECONDS)
+                .weigher((Photo p, Image i) -> {
+                    double weight = i.getHeight() * i.getWidth() * 4;
+                    if (weight < 0) return 0;
+                    return weight > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) weight;
+                })
+                .build();
+        executor = Executors.newFixedThreadPool(executorSize);
+    }
+
     public void scanPath(Path path) throws IOException {
         validateDirectory(path);
 
@@ -206,6 +222,13 @@ public class PhotoLoader {
             }
 
             dirTask = CompletableFuture.runAsync(() -> {
+                if (DEBUG) {
+                    System.out.println(
+                            "Scanning start: " + path + ", " + Thread.currentThread().getName()
+                                    + ", " + Thread.currentThread().threadId()
+                                    + ", " + System.currentTimeMillis());
+                }
+
                 try (Stream<Path> pathStream = Files.list(path)) {
                     referenceBuilder(pathStream);
                 } catch (IOException e) {
@@ -218,12 +241,20 @@ public class PhotoLoader {
                     photoIndex = Collections.emptyMap();
                     if (DEBUG) System.err.println(ex.getMessage());
                 }
+
+                if (DEBUG) {
+                    System.out.println(
+                            "Scanning Done: " + path + ", " + Thread.currentThread().getName()
+                                    + ", " + Thread.currentThread().threadId()
+                                    + ", " + System.currentTimeMillis());
+                }
             });
         }
 
         return dirTask;
     }
 
+    //TODO New cache strategy for gif file should be considered, currently it is simply avoid from being cached.
     public CompletableFuture<Image> loadPhotoAsync(Photo photo) {
         if (photo == null) {
             throw new NullPointerException("Photo cannot be null");
@@ -235,7 +266,7 @@ public class PhotoLoader {
         // Check if photo hit the cache
         Image cached = cache.getIfPresent(realPhoto);
         if (cached != null) {
-            if (DEBUG) System.out.println("Cache hit: " + realPhoto);
+            if (DEBUG) System.out.println("Cache hit: " + realPhoto.getName());
             return CompletableFuture.completedFuture(cached);
         }
 
@@ -248,11 +279,13 @@ public class PhotoLoader {
         CompletableFuture<Image> loadTask = CompletableFuture.supplyAsync(() -> {
             try {
                 Image image = render(realPhoto);
-                cache.put(realPhoto, image);
+                if (!realPhoto.getType().equals("gif")) {
+                    cache.put(realPhoto, image);
+                }
                 if (DEBUG) {
                     System.out.println("Render ended: " + realPhoto.getName() + " on thread: "
                             + Thread.currentThread().getName() + ", " + Thread.currentThread().threadId()
-                            + ", " + System.currentTimeMillis() % 10000);
+                            + ", " + System.currentTimeMillis());
                 }
                 return image;
             } catch (IOException e) {
@@ -263,6 +296,10 @@ public class PhotoLoader {
         // Ensure that only the first started task is put in the map
         CompletableFuture<Image> existingTask = photoTasks.putIfAbsent(realPhoto, loadTask);
         if (existingTask != null) {
+            if (!loadTask.isDone()) {
+                loadTask.cancel(true);
+            }
+
             return existingTask;
         }
 
@@ -271,6 +308,7 @@ public class PhotoLoader {
         return loadTask;
     }
 
+    //TODO New cache strategy for gif file should be considered, now is simply avoided from being pre-loaded
     public CompletableFuture<Void> preLoadPhotosAsync(int curIndex, int preloadCount) {
         CompletableFuture<Void> preLoadTask = CompletableFuture.supplyAsync(() -> {
             if (!isScanDone || photoPaths == null || photoPaths.isEmpty()) {
@@ -285,7 +323,7 @@ public class PhotoLoader {
                 throw new IllegalArgumentException("Preload count is invalid.");
             }
 
-            int total = photoPaths.size();
+            int total = photoPaths.size() - 1;
             int start = Math.max(0, curIndex - preloadCount);
             int end = Math.min(total, curIndex + preloadCount);
 
@@ -295,6 +333,7 @@ public class PhotoLoader {
             return IntStream.range(start, end + 1) // start <= i < end + 1
                     .filter(i -> i != curIndex)
                     .mapToObj(i -> photoPaths.get(i))
+                    .filter(photo -> !photo.getType().equals("gif"))
                     .filter(photo -> cache.getIfPresent(photo) == null)
                     .map(this::loadPhotoAsync)
                     .toList(); // toArray here may cause type unsafety
@@ -361,7 +400,7 @@ public class PhotoLoader {
         if (DEBUG) {
             System.out.println("Rendering " + photo.getName() + " on thread: "
                     + Thread.currentThread().getName() + ", " + Thread.currentThread().threadId()
-                    + ", " + System.currentTimeMillis() % 10000);
+                    + ", " + System.currentTimeMillis());
         }
 
         if (photo.getType().equals("gif")) {
@@ -388,7 +427,7 @@ public class PhotoLoader {
         }
     }
 
-    public void cancelTask() {
+    private void cancelTask() {
         if (dirTask != null && !dirTask.isDone()) {
             dirTask.cancel(true);
         }
@@ -443,8 +482,29 @@ public class PhotoLoader {
         return dirPath;
     }
 
+    /**
+     * Checks if this PhotoLoader is ready for index-based operations,
+     * i.e., directory scan is done and all core data structures are initialized.
+     * <p>
+     * Returns {@code true} only if the scan is done and {@code dirPath},
+     * {@code photoPaths}, and {@code photoIndex} are all non-null.
+     * <p>
+     * Thread-safe for status checking, but does not guarantee the state remains
+     * unchanged after the call.
+     *
+     * @return {@code true} if the loader is ready for index-based operations, {@code false} otherwise
+     */
+    public boolean isIndexBasedUsable() {
+        return isScanDone && dirPath != null && photoPaths != null && photoIndex != null;
+    }
+
     public ExecutorService getExecutor() {
         return executor;
+    }
+
+    @Override
+    public void close() {
+        cancelTask();
     }
 
     private void validateDirectory(Path path) throws NoSuchFileException, AccessDeniedException {

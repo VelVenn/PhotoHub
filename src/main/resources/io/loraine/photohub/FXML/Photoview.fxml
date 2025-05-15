@@ -1,45 +1,58 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import com.jfoenix.controls.JFXButton?>
-<?import com.jfoenix.controls.JFXComboBox?>
-<?import com.jfoenix.controls.JFXSlider?>
-<?import javafx.geometry.Insets?>
-<?import javafx.scene.image.Image?>
-<?import javafx.scene.image.ImageView?>
-<?import javafx.scene.layout.BorderPane?>
-<?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.Region?>
-<?import javafx.scene.layout.StackPane?>
-<?import org.controlsfx.control.StatusBar?>
-<?import org.kordamp.ikonli.javafx.FontIcon?>
-<?import org.kordamp.ikonli.javafx.StackedFontIcon?>
+<!--
+    Photohub - To View Some S3xy Photos
+    Copyright (C) 2025 Loraine, Yui
 
-<BorderPane fx:id="rootPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="500.0" prefWidth="680.0" stylesheets="@../CSS/ViewerBasicStyle.css" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1">
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ -->
+
+<?import com.jfoenix.controls.*?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+<?import org.controlsfx.control.*?>
+<?import org.kordamp.ikonli.javafx.*?>
+
+<BorderPane fx:id="rootPane" maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="600.0" prefWidth="800.0" stylesheets="@../CSS/ViewerBasicStyle.css" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1">
   <top>
-    <HBox prefHeight="40.0" prefWidth="600.0" spacing="8.0" styleClass="top-hbox" stylesheets="@../CSS/ViewerBasicStyle.css" BorderPane.alignment="CENTER_LEFT">
+    <HBox fx:id="topHBox" prefHeight="40.0" prefWidth="600.0" spacing="8.0" styleClass="top-hbox" stylesheets="@../CSS/ViewerBasicStyle.css" BorderPane.alignment="CENTER_LEFT">
       <children>
-        <JFXComboBox fx:id="sizeCombo" focusColor="#4d4d4d" prefHeight="23.0" prefWidth="65.0" promptText="100%">
+        <JFXComboBox fx:id="sizeCombo" focusColor="#4d4d4d" minWidth="-Infinity" prefHeight="23.0" prefWidth="65.0">
           <HBox.margin>
             <Insets />
           </HBox.margin>
         </JFXComboBox>
-        <JFXButton fx:id="zoomInButton" alignment="CENTER" contentDisplay="GRAPHIC_ONLY">
-          <graphic>
-            <FontIcon iconLiteral="mdomz-zoom_in" iconSize="20" />
-          </graphic>
-        </JFXButton>
-        <JFXSlider fx:id="zoomSlider" blockIncrement="0.01" indicatorPosition="RIGHT" max="5.0" min="0.05" prefHeight="28.0" prefWidth="140.0" styleClass="jfx-slider" stylesheets="@../CSS/ViewerBasicStyle.css" value="1.0" viewOrder="-1.0">
-          <HBox.margin>
-            <Insets />
-          </HBox.margin>
-        </JFXSlider>
         <JFXButton fx:id="zoomOutButton" alignment="CENTER" contentDisplay="GRAPHIC_ONLY">
           <graphic>
             <FontIcon iconLiteral="mdomz-zoom_out" iconSize="20" />
           </graphic>
         </JFXButton>
+        <JFXSlider fx:id="zoomSlider" blockIncrement="0.01" indicatorPosition="RIGHT" max="5.0" min="0.05" prefHeight="28.0" prefWidth="249.0" styleClass="jfx-slider" stylesheets="@../CSS/ViewerBasicStyle.css" value="1.0" viewOrder="-1.0">
+          <HBox.margin>
+            <Insets />
+          </HBox.margin>
+        </JFXSlider>
+        <JFXButton fx:id="zoomInButton" alignment="CENTER" contentDisplay="GRAPHIC_ONLY">
+          <graphic>
+            <FontIcon iconLiteral="mdomz-zoom_in" iconSize="20" />
+          </graphic>
+        </JFXButton>
         <Region fx:id="topFilling" minWidth="0.0" HBox.hgrow="SOMETIMES" />
-        <JFXComboBox fx:id="timeCombo" focusColor="#4d4d4d" prefHeight="29.0" prefWidth="58.0" promptText="1s" />
+        <JFXComboBox fx:id="timeCombo" focusColor="#4d4d4d" minWidth="-Infinity" prefHeight="29.0" prefWidth="65.0" promptText="1s" />
         <JFXButton fx:id="playButton" contentDisplay="GRAPHIC_ONLY" ripplerFill="BLACK" styleClass="jfx-button" stylesheets="@../CSS/ViewerBasicStyle.css">
           <graphic>
             <StackedFontIcon>
@@ -67,7 +80,7 @@
     </HBox>
   </top>
   <bottom>
-    <StatusBar fx:id="photoStatus" prefHeight="30.0" prefWidth="678.0" text="" BorderPane.alignment="TOP_CENTER">
+    <StatusBar fx:id="photoStatus" prefHeight="30.0" prefWidth="955.0" text="" BorderPane.alignment="TOP_CENTER">
       <BorderPane.margin>
         <Insets />
       </BorderPane.margin>
@@ -79,11 +92,12 @@
   <center>
     <StackPane fx:id="centerStackPane" cache="true" cacheHint="SPEED" styleClass="center-stack-pane" stylesheets="@../CSS/ViewerBasicStyle.css" BorderPane.alignment="CENTER">
       <children>
-        <ImageView fx:id="photoView" cache="true" cacheHint="SPEED" fitHeight="150.0" fitWidth="200.0" pickOnBounds="true" preserveRatio="true">
-          <image>
-            <Image url="@../Default_Resources/Lenna.png" />
-          </image>
-        </ImageView>
+        <ImageView fx:id="photoView" cache="true" cacheHint="SPEED" fitHeight="150.0" fitWidth="200.0" pickOnBounds="true" preserveRatio="true" />
+            <Label fx:id="loadMsg" alignment="CENTER" text="Loading... Please wait" visible="false">
+               <font>
+                  <Font name="Georgia" size="20.0" />
+               </font>
+            </Label>
       </children>
     </StackPane>
   </center>
