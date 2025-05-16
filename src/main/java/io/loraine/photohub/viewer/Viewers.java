@@ -18,6 +18,7 @@
 
 package io.loraine.photohub.viewer;
 
+import io.loraine.photohub.util.Logger;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.fxml.FXMLLoader;
@@ -25,7 +26,7 @@ import javafx.scene.Parent;
 import javafx.util.Pair;
 
 import io.loraine.photohub.photo.PhotoLoader;
-
+import io.loraine.photohub.photo.LoaderManager;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -33,6 +34,8 @@ import java.nio.file.Path;
 public class Viewers {
     private Viewers() {
     }
+
+    private static final boolean DEBUG = true;
 
     /**
      * 创建一个完整可用的{@code Photoview Pane}和与其绑定的控制器
@@ -131,8 +134,35 @@ public class Viewers {
         stage.setScene(scene);
 
         vc.setStageMinSize(stage);
+        stage.titleProperty().bind(vc.curPhotoNameProperty());
 
         return new Pair<>(vc, stage);
     }
 
+    public static Stage createViewerStage(Path photoPath) throws IOException {
+        FXMLLoader fLoader =
+                new FXMLLoader(Viewers.class.getResource("/io/loraine/photohub/FXML/PhotoView.fxml"));
+
+        Path parentPath = photoPath.getParent();
+
+        PhotoLoader loader = LoaderManager.getInstance().acquire(parentPath);
+        ViewController vc = new ViewController(photoPath, loader);
+        fLoader.setController(vc);
+
+        Parent root = fLoader.load();
+        Scene scene = new Scene(root);
+
+        Stage stage = new Stage();
+        stage.setScene(scene);
+        stage.setOnCloseRequest(event -> {
+            if (DEBUG) Logger.logErr("View Stage closed which is open by: " + photoPath);
+            LoaderManager.getInstance().release(parentPath);
+            stage.titleProperty().unbind();
+            vc.dispose();
+        });
+
+        stage.titleProperty().bind(vc.curPhotoNameProperty());
+        vc.setStageMinSize(stage);
+        return stage;
+    }
 }
