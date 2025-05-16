@@ -18,6 +18,8 @@
 
 package io.loraine.photohub.photo;
 
+import io.loraine.photohub.util.Logger;
+
 import javax.imageio.ImageIO;
 
 import java.nio.file.Path;
@@ -47,7 +49,7 @@ public class Photos {
         SUPPORTED_TYPES = Arrays
                 .stream(suffixes).map(String::toLowerCase).collect(Collectors.toUnmodifiableSet());
 
-        if (DEBUG) System.out.println("Supported types " + SUPPORTED_TYPES);
+        if (DEBUG) Logger.log("Supported types: " + SUPPORTED_TYPES);
     }
 
     public static void validatePath(Path path) throws IOException {
