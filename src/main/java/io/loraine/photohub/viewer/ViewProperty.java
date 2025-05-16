@@ -20,6 +20,7 @@ package io.loraine.photohub.viewer;
 
 import io.loraine.photohub.photo.*;
 
+import io.loraine.photohub.util.Logger;
 import javafx.application.Platform;
 import javafx.beans.property.*;
 
@@ -74,13 +75,17 @@ public class ViewProperty {
         setScaleListener();
     }
 
+    private ChangeListener<Photo> photoListener;
+    private ChangeListener<Number> idxListener;
+    private ChangeListener<Object> scaleListener;
+
     private void setPhotoListener() {
 
-        ChangeListener<Photo> photoListener = (o, oldV, newV) -> {
+        photoListener = (o, oldV, newV) -> {
             updatePhotoMeta(null);
 
             if (newV != null) {
-                System.out.println("CurPhoto changed to " + newV.getName());
+                if (DEBUG) Logger.log("CurPhoto changed to " + newV.getName());
 
                 loadImg(newV);
                 loadPhotoMeta(newV);
@@ -97,7 +102,7 @@ public class ViewProperty {
     }
 
     private void setIdxListener() {
-        ChangeListener<Number> changeListener = (o, oldV, newV) -> Platform.runLater(() -> {
+        idxListener = (o, oldV, newV) -> Platform.runLater(() -> {
             int idx = curIdx.get();
             int all = photoCount.get();
 
@@ -110,12 +115,12 @@ public class ViewProperty {
             }
         });
 
-        curIdx.addListener(changeListener);
-        photoCount.addListener(changeListener);
+        curIdx.addListener(idxListener);
+        photoCount.addListener(idxListener);
     }
 
     private void setScaleListener() {
-        ChangeListener<Object> changeListener = (o, oldV, newV) -> Platform.runLater(() -> {
+        scaleListener = (o, oldV, newV) -> Platform.runLater(() -> {
             String msg = isFitted.get() ? "Fit: " : "";
             double scale = curZoom.get();
 
@@ -126,44 +131,48 @@ public class ViewProperty {
             }
         });
 
-        curZoom.addListener(changeListener);
-        isFitted.addListener(changeListener);
+        curZoom.addListener(scaleListener);
+        isFitted.addListener(scaleListener);
 
         // initialize first display
-        Platform.runLater(() -> changeListener.changed(null, null, null));
+        Platform.runLater(() -> scaleListener.changed(null, null, null));
+    }
+
+    public void dispose() {
+        if (photoListener != null) {
+            curPhoto.removeListener(photoListener);
+            photoListener = null;
+        }
+        if (idxListener != null) {
+            curIdx.removeListener(idxListener);
+            photoCount.removeListener(idxListener);
+            idxListener = null;
+        }
+        if (scaleListener != null) {
+            curZoom.removeListener(scaleListener);
+            isFitted.removeListener(scaleListener);
+            scaleListener = null;
+        }
     }
 
     CompletableFuture<Void> initScanDir() {
         Photo current = curPhoto.get();
         isScanDone.set(false);
 
-        try {
-            return loader.scanPathAsync(current.getParent())
-                    .thenRun(() -> {
-                        isScanDone.set(true);
-                        curIdx.set(loader.getPhotoIndex(current));
-                        photoCount.set(loader.getPhotoCount());
-                    })
-                    .exceptionally(ex -> {
-                        isScanDone.set(false);
-                        setError("Scan directory failed: " + ex.getMessage());
-                        if (DEBUG) {
-                            System.err.println(
-                                    ex.getClass().getName() + ": " + ex.getMessage() + " Cause: " + ex.getCause());
-                        }
-                        return null;
-                    });
-        } catch (Exception e) {
-            isScanDone.set(false);
-            String msg = "Validation error: " + e.getMessage();
-            setError(msg);
-
-            if (DEBUG) {
-                System.err.println(e.getClass().getName() + ": " + e.getMessage() + " Cause: " + e.getCause());
-            }
-
-            return CompletableFuture.failedFuture(new RuntimeException(msg, e.getCause()));
-        }
+        return loader.scanPathAsync(current.getParent())
+                .thenRun(() -> {
+                    isScanDone.set(true);
+                    curIdx.set(loader.getPhotoIndex(current));
+                    photoCount.set(loader.getPhotoCount());
+                })
+                .exceptionally(ex -> {
+                    isScanDone.set(false);
+                    setError("Scan directory failed: " + ex.getMessage());
+                    if (DEBUG) {
+                        Logger.logErr("Scan directory failed: ", ex);
+                    }
+                    return null;
+                });
     }
 
     void loadPhotoMeta(Photo photo) {
@@ -177,7 +186,7 @@ public class ViewProperty {
             String msg = "Load metadata failed: " + ex.getMessage();
             setError(msg);
 
-            if (DEBUG) System.err.println(msg);
+            if (DEBUG) Logger.logErr("Load metadata failed: ", ex);
             return null;
         });
     }
@@ -208,7 +217,7 @@ public class ViewProperty {
                         setError(msg);
                     }
 
-                    if (DEBUG) System.err.println(msg);
+                    if (DEBUG) Logger.logErr("Load photo failed: ", ex);
                     return null;
                 });
     }
@@ -238,8 +247,7 @@ public class ViewProperty {
             } catch (Exception e) {
                 String msg = "Failed to load metadata: " + e.getMessage();
                 setError(msg);
-                if (DEBUG)
-                    System.err.println(e.getClass().getName() + ": " + e.getMessage() + " Cause: " + e.getCause());
+                if (DEBUG) Logger.logErr("Failed to load metadata: ", e);
             }
         });
     }

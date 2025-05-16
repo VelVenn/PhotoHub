@@ -1,5 +1,9 @@
 package io.loraine.photohub.fileman;
 
+import io.loraine.photohub.photo.Photos;
+import io.loraine.photohub.util.Logger;
+import io.loraine.photohub.viewer.Viewers;
+
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -19,6 +23,7 @@ import javafx.scene.shape.Rectangle;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
@@ -300,6 +305,10 @@ public class FileManagerController {
             if (event.getButton() == MouseButton.PRIMARY) {
                 handleFileItemClick(fileBox, event);
             }
+
+//            if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
+//                System.out.println("Double click on file: " + file.getAbsolutePath());
+//            }
         });
 
         ContextMenu contextMenu = new ContextMenu();
@@ -488,7 +497,26 @@ public class FileManagerController {
     }
 
     // 处理文件项点击
+    // TODO 添加图片点击显示功能
     private void handleFileItemClick(VBox fileBox, MouseEvent event) {
+        if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
+            Path path = Paths.get(fileBox.getUserData().toString());
+
+            if (Photos.isValidPhoto(path)) {
+                try {
+                    var viewStage = Viewers.createViewerStage(path);
+                    viewStage.show();
+                    Logger.logErr("Stage show: " + viewStage.isShowing() + " - " + path);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            } else {
+                System.err.println("Not a photo: " + path);
+            }
+
+            return;
+        }
+
         if (event.isControlDown()) {
             toggleSelection(fileBox);
         } else if (event.isShiftDown() && !selectedItems.isEmpty()) {

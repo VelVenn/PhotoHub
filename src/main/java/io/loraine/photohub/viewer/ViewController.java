@@ -22,6 +22,7 @@ import io.loraine.photohub.photo.Photo;
 import io.loraine.photohub.photo.Photos;
 import io.loraine.photohub.photo.PhotoLoader;
 
+import io.loraine.photohub.util.Logger;
 import javafx.animation.PauseTransition;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -222,11 +223,17 @@ public class ViewController {
         slideShowTimeline = new Timeline(player);
         slideShowTimeline.setCycleCount(Timeline.INDEFINITE);
         slideShowTimeline.play();
+
+        if (DEBUG) Logger.log("Slide show started with gap: " + gap.toSeconds() + " seconds");
     }
 
     private void stopSlideShow() {
         if (slideShowTimeline != null) {
             slideShowTimeline.stop();
+        }
+
+        if (DEBUG) {
+            Logger.log("Slide show stopped");
         }
     }
 
@@ -251,8 +258,7 @@ public class ViewController {
             String msg = String.format("Invalid time string: %s", timeStr);
             showErrorLater(msg, Duration.seconds(10));
 
-            if (DEBUG)
-                System.err.println(msg + "Caused by: " + e.getCause().getMessage());
+            if (DEBUG) Logger.logErr(msg, e);
             return Duration.seconds(1.0);
         }
     }
@@ -267,8 +273,7 @@ public class ViewController {
             String msg = "Indexing is failed or still in progress.";
             showError(msg, Duration.seconds(15));
 
-            if (DEBUG)
-                System.err.println(msg);
+            if (DEBUG) Logger.logErr(msg);
             return true;
         }
 
@@ -277,8 +282,7 @@ public class ViewController {
             String msg = "Current photo is null.";
             showError(msg, Duration.seconds(15));
 
-            if (DEBUG)
-                System.err.println(msg);
+            if (DEBUG) Logger.logErr(msg);
             return true;
         }
 
@@ -350,7 +354,7 @@ public class ViewController {
                 String msg = "Image is unloaded.";
                 // showError(msg, Duration.seconds(3));
 
-                if (DEBUG) System.err.println(msg);
+                if (DEBUG) Logger.logErr(msg);
             }
             clampViewOffset();
         } else {
@@ -402,8 +406,7 @@ public class ViewController {
             String msg = String.format("Invalid percent string: %s", percentStr);
             showErrorLater(msg, Duration.seconds(10));
 
-            if (DEBUG)
-                System.err.println(msg + "Caused by: " + e.getCause().getMessage());
+            if (DEBUG) Logger.logErr(msg, e);
             return -1.0;
         }
     }
@@ -606,16 +609,19 @@ public class ViewController {
         try {
             errMsg.setStyle("-fx-text-fill: red;");
 
+            // 设置错误消息监听
             viewProperty.errMsgProperty().addListener((o, oldV, newV) -> {
                 if (newV != null) {
                     showErrorLater(newV, Duration.seconds(5));
                 }
             });
 
+            // 设置图片切换与播放按键警用属性绑定
             nextButton.disableProperty().bind(viewProperty.isScanDoneProperty().not());
             prevButton.disableProperty().bind(viewProperty.isScanDoneProperty().not());
             playButton.disableProperty().bind(viewProperty.isScanDoneProperty().not());
 
+            // 设置播放按键图标可见性绑定
             playIcon.visibleProperty().bind(viewProperty.isPlayingProperty().not());
             pauseIcon.visibleProperty().bind(viewProperty.isPlayingProperty());
 
@@ -643,8 +649,7 @@ public class ViewController {
                     stopSlideShow();
 
                     viewProperty.isPlayingProperty().set(false);
-                    if (DEBUG)
-                        System.err.println(msg);
+                    if (DEBUG) Logger.logErr(msg);
                 }
             });
 
@@ -746,16 +751,12 @@ public class ViewController {
             // throw new IOException("Test exception");
         } catch (Exception e) {
             showError(e.getMessage(), 2000);
-            if (DEBUG) {
-                System.err.println(e.getClass().getName() + ": " + e.getMessage() + " Cause: " + e.getCause());
-            }
+            if (DEBUG) Logger.logErr(null, e);
         }
 
         Platform.runLater(() -> {
             if (DEBUG) {
-                System.out.println("Initialize complete");
-                System.out.println(photoView.getFitHeight());
-                System.out.println(centerStackPane.getHeight());
+                Logger.log("ViewController initialized: " + this);
             }
 
             viewProperty
@@ -765,8 +766,7 @@ public class ViewController {
                         loader.preLoadPhotosAsync(curIndex, 1);
                     })
                     .exceptionally(ex -> {
-                        if (DEBUG)
-                            System.err.println(ex.getMessage());
+                        if (DEBUG) Logger.logErr(null, ex);
                         return null;
                     });
 
@@ -779,4 +779,120 @@ public class ViewController {
             // 属性和数据已经被 JavaFX 布局引擎正确计算和赋值，以及加快界面显示的速度。
         });
     }
+
+    public void dispose() {
+        if (DEBUG) {
+            Logger.logErr("Disposing ViewController: " + this);
+        }
+
+        // 1. 停止并清理幻灯片动画
+        if (slideShowTimeline != null) {
+            stopSlideShow();
+
+            if (DEBUG) {
+                Logger.logErr("Slide show stopped on deposing the: " + this);
+            }
+
+            slideShowTimeline = null;
+        }
+
+        // 2. 解绑 photoView 的鼠标事件
+        if (photoView != null) {
+            photoView.setOnMousePressed(null);
+            photoView.setOnMouseReleased(null);
+            photoView.setOnMouseDragged(null);
+            photoView.imageProperty().unbind();
+            photoView.fitWidthProperty().unbind();
+            photoView.fitHeightProperty().unbind();
+            photoView.scaleXProperty().unbind();
+            photoView.scaleYProperty().unbind();
+            photoView = null;
+        }
+
+        // 3. 解绑 sizeCombo、timeCombo 监听
+        if (sizeCombo != null) {
+            sizeCombo.showingProperty().removeListener((o, oldV, newV) -> {});
+            sizeCombo.getSelectionModel().clearSelection();
+            sizeCombo.getItems().clear();
+            sizeCombo = null;
+        }
+        if (timeCombo != null) {
+            timeCombo.valueProperty().removeListener((o, oldV, newV) -> {});
+            timeCombo.getItems().clear();
+            timeCombo = null;
+        }
+
+        // 4. 解绑按钮事件
+        if (nextButton != null) {
+            nextButton.setOnMouseClicked(null);
+            nextButton = null;
+        }
+        if (prevButton != null) {
+            prevButton.setOnMouseClicked(null);
+            prevButton = null;
+        }
+        if (playButton != null) {
+            playButton.setOnMouseClicked(null);
+            playButton = null;
+        }
+        if (playIcon != null) {
+            playIcon.visibleProperty().unbind();
+            playIcon = null;
+        }
+        if (pauseIcon != null) {
+            pauseIcon.visibleProperty().unbind();
+            pauseIcon = null;
+        }
+        if (zoomInButton != null) {
+            zoomInButton.setOnMousePressed(null);
+            zoomInButton = null;
+        }
+        if (zoomOutButton != null) {
+            zoomOutButton.setOnMousePressed(null);
+            zoomOutButton = null;
+        }
+        if (zoomSlider != null) {
+            zoomSlider.setOnMouseDragged(null);
+            zoomSlider.setOnMouseReleased(null);
+            zoomSlider = null;
+        }
+
+        // 5. 解绑 viewProperty 的所有属性监听
+        if (viewProperty != null) {
+            viewProperty.dispose();
+        }
+
+        // 6. 解绑其它控件绑定
+        photoName.textProperty().unbind();
+        photoSize.textProperty().unbind();
+        photoType.textProperty().unbind();
+        photoDimension.textProperty().unbind();
+        photoZoom.textProperty().unbind();
+        photoIdx.textProperty().unbind();
+        photoLastModified.textProperty().unbind();
+
+        // 7. 清理错误提示
+        hideTimer.stop();
+        if (photoStatus != null) {
+            photoStatus.getRightItems().removeAll(errSeparator, errMsg);
+        }
+
+        // 8. 断开其它引用（便于 GC）
+        rootPane = null;
+        topHBox = null;
+        topFilling = null;
+
+        centerStackPane.clipProperty().unbind();
+        centerStackPane.setClip(null);
+        centerStackPane = null;
+
+        loadMsg.visibleProperty().unbind();
+        loadMsg = null;
+
+        if (DEBUG) {
+            Logger.logErr("ViewController disposed: " + this);
+        }
+    }
 }
+
+

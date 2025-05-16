@@ -35,9 +35,9 @@ public class ViewerDemoApplication extends Application {
     @Override
     public void start(Stage stage) throws IOException {
         PhotoLoader photoLoader = new PhotoLoader(
-                Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE); // Set all cache strategy failed for demo
+                500 * 1024 * 1024, 20, 40, 15); // Set all cache strategy failed for demo
 
-        Path path = Objects.requireNonNull(Paths.get("path/to/your/photo.jpg"));
+        Path path = Objects.requireNonNull(Paths.get("D:\\KUN\\desktop\\Wallpaper\\001.jpg"));
 
         var packaged = Viewers.createViewerScene(path, photoLoader);
 

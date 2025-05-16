@@ -18,6 +18,7 @@
 
 package io.loraine.photohub.photo;
 
+import io.loraine.photohub.util.Logger;
 import javafx.scene.image.Image;
 import javafx.embed.swing.SwingFXUtils;
 
@@ -170,8 +171,6 @@ public class PhotoLoader implements Closeable {
     }
 
     public void scanPath(Path path) throws IOException {
-        validateDirectory(path);
-
         if (isScanDone) {
             return;
         }
@@ -191,6 +190,15 @@ public class PhotoLoader implements Closeable {
                 return;
             }
 
+            try {
+                validateDirectory(path);
+            } catch (IOException e) {
+                isScanDone = false;
+                photoPaths = Collections.emptyList();
+                photoIndex = Collections.emptyMap();
+                throw new IOException("Error validating path: " + path, e);
+            }
+
             try (Stream<Path> pathStream = Files.list(path)) {
                 referenceBuilder(pathStream);
             } catch (IOException e) {
@@ -204,9 +212,7 @@ public class PhotoLoader implements Closeable {
         }
     }
 
-    public CompletableFuture<Void> scanPathAsync(Path path) throws IOException {
-        validateDirectory(path);
-
+    public CompletableFuture<Void> scanPathAsync(Path path) {
         if (isScanDone) {
             return CompletableFuture.completedFuture(null);
         }
@@ -226,10 +232,13 @@ public class PhotoLoader implements Closeable {
 
             dirTask = CompletableFuture.runAsync(() -> {
                 if (DEBUG) {
-                    System.out.println(
-                            "Scanning start: " + path + ", " + Thread.currentThread().getName()
-                                    + ", " + Thread.currentThread().threadId()
-                                    + ", " + System.currentTimeMillis());
+                    Logger.log("Scanning path: " + path);
+                }
+
+                try {
+                    validateDirectory(path);
+                } catch (IOException e) {
+                    throw new CompletionException("Error validating path: " + path, e);
                 }
 
                 try (Stream<Path> pathStream = Files.list(path)) {
@@ -242,14 +251,11 @@ public class PhotoLoader implements Closeable {
                     isScanDone = false;
                     photoPaths = Collections.emptyList();
                     photoIndex = Collections.emptyMap();
-                    if (DEBUG) System.err.println(ex.getMessage());
+                    if (DEBUG) Logger.logErr("Failure: " + path, ex);
                 }
 
                 if (DEBUG) {
-                    System.out.println(
-                            "Scanning Done: " + path + ", " + Thread.currentThread().getName()
-                                    + ", " + Thread.currentThread().threadId()
-                                    + ", " + System.currentTimeMillis());
+                    Logger.log("Scan completed: " + path);
                 }
             });
         }
@@ -269,7 +275,7 @@ public class PhotoLoader implements Closeable {
         // Check if photo hit the cache
         Image cached = cache.getIfPresent(realPhoto);
         if (cached != null) {
-            if (DEBUG) System.out.println("Cache hit: " + realPhoto.getName());
+            if (DEBUG) Logger.log("Cache hit: " + realPhoto.getName());
             return CompletableFuture.completedFuture(cached);
         }
 
@@ -286,9 +292,7 @@ public class PhotoLoader implements Closeable {
                             cache.put(realPhoto, image);
                         }
                         if (DEBUG) {
-                            System.out.println("Render ended: " + realPhoto.getName() + " on thread: "
-                                    + Thread.currentThread().getName() + ", " + Thread.currentThread().threadId()
-                                    + ", " + System.currentTimeMillis());
+                            Logger.log("Render ended: " + realPhoto.getName());
                         }
                         return image;
                     } catch (IOException e) {
@@ -352,7 +356,7 @@ public class PhotoLoader implements Closeable {
 
         preLoadTask.whenComplete((v, ex) -> {
             if (ex != null) {
-                if (DEBUG) System.err.println("Preload batch failed: " + ex.getMessage());
+                if (DEBUG) Logger.logErr("Preload batch failed: " + preLoadTask, ex);
             }
         });
 
@@ -391,7 +395,7 @@ public class PhotoLoader implements Closeable {
             if (ex != null) {
                 realPhoto.setAttributesLoaded(false);
                 realPhoto.setDimensionsLoaded(false);
-                if (DEBUG) System.err.println(ex.getMessage());
+                if (DEBUG) Logger.logErr("Load metadata failed: " + realPhoto.getName(), ex);
             }
         });
     }
@@ -402,9 +406,7 @@ public class PhotoLoader implements Closeable {
         }
 
         if (DEBUG) {
-            System.out.println("Rendering " + photo.getName() + " on thread: "
-                    + Thread.currentThread().getName() + ", " + Thread.currentThread().threadId()
-                    + ", " + System.currentTimeMillis());
+            Logger.log("Rendering " + photo.getName());
         }
 
         if (photo.getType().equals("gif")) {
