@@ -124,16 +124,14 @@ public class ViewController {
     private final PauseTransition hideTimer = new PauseTransition();
 
     private final PhotoLoader loader;
-    private final ViewProperty viewProperty;
+    private ViewProperty viewProperty;
     private Timeline slideShowTimeline;
 
     private static final boolean DEBUG = true;
 
-    /**
-     * The default constructor is set to private to prevent undefined behaviors
-     */
     private ViewController() {
-        throw new RuntimeException("Default constructor is not allowed.");
+        this.loader = null;
+        this.viewProperty = null;
     }
 
     /**
@@ -604,19 +602,60 @@ public class ViewController {
         return viewProperty.displayNameProperty();
     }
 
+    private ChangeListener<String> errMsgListener = (o, oldV, newV) -> {
+        if (newV != null) {
+            showErrorLater(newV, Duration.seconds(3));
+        }
+    };
+
+    private ChangeListener<Boolean> playListener = (o, oldV, newV) -> {
+        if (newV) {
+            startSlideShow();
+        } else {
+            stopSlideShow();
+        }
+    };
+
+    private ChangeListener<String> timeStrListener = (o, oldV, newV) -> {
+        if (viewProperty.isPlayingProperty().get()) {
+            startSlideShow();
+        }
+    };
+
+    private ChangeListener<Boolean> sizeComboShowingListener = (o, oldV, newV) -> {
+        if (newV) {
+            sizeCombo.getSelectionModel().clearSelection();
+        }
+
+        if (!newV && !sizeCombo.getSelectionModel().isEmpty()) {
+            zoomScaleByCombo();
+        }
+    };
+
+    private ChangeListener<Boolean> fittedListener = (o, oldV, newV) -> {
+        if (newV) {
+            setZoom(-1.0);
+        }
+    };
+
+    private ChangeListener<Object> scaleListener = (o, oldV, newV) -> {
+        Image curImg = photoView.getImage();
+
+        double scale = getPhotoViewScale(curImg);
+        viewProperty.curZoomProperty().set(scale);
+
+        zoomSlider.setValue(scale);
+    };
+
     @FXML
     public void initialize() {
         try {
             errMsg.setStyle("-fx-text-fill: red;");
 
             // 设置错误消息监听
-            viewProperty.errMsgProperty().addListener((o, oldV, newV) -> {
-                if (newV != null) {
-                    showErrorLater(newV, Duration.seconds(5));
-                }
-            });
+            viewProperty.errMsgProperty().addListener(errMsgListener);
 
-            // 设置图片切换与播放按键警用属性绑定
+            // 设置图片切换与播放按键禁用属性绑定
             nextButton.disableProperty().bind(viewProperty.isScanDoneProperty().not());
             prevButton.disableProperty().bind(viewProperty.isScanDoneProperty().not());
             playButton.disableProperty().bind(viewProperty.isScanDoneProperty().not());
@@ -633,31 +672,12 @@ public class ViewController {
                 viewProperty.isPlayingProperty().set(false);
                 toPrevPhoto();
             });
-
             playButton.setOnMouseClicked(event -> playPhoto());
 
-            viewProperty.isPlayingProperty().addListener((o, oldV, newV) -> {
-                if (newV != null) {
-                    if (newV) {
-                        startSlideShow();
-                    } else {
-                        stopSlideShow();
-                    }
-                } else {
-                    String msg = "Playing status is accidentally set to null.";
-                    showErrorLater(msg, Duration.seconds(10));
-                    stopSlideShow();
 
-                    viewProperty.isPlayingProperty().set(false);
-                    if (DEBUG) Logger.logErr(msg);
-                }
-            });
-
-            timeCombo.valueProperty().addListener((o, oldV, newV) -> {
-                if (viewProperty.isPlayingProperty().get()) {
-                    startSlideShow();
-                }
-            });
+            // 设置播放状态监听
+            viewProperty.isPlayingProperty().addListener(playListener);
+            timeCombo.valueProperty().addListener(timeStrListener);
 
             photoStatus.getLeftItems().addAll(
                     photoSize,
@@ -696,25 +716,13 @@ public class ViewController {
             // TODO Flickers will happened when set Image to fast, need new display cache strategy
             photoView.imageProperty().bind(viewProperty.displayImgProperty());
 
+            // 设置图片的缩放属性绑定与监听
             photoView.setOnMousePressed(this::mousePressedOnView);
             photoView.setOnMouseReleased(e -> mouseReleasedOnView());
             photoView.setOnMouseDragged(this::mouseDraggedOnView);
 
-            sizeCombo.showingProperty().addListener((o, oldV, newV) -> {
-                if (newV) {
-                    sizeCombo.getSelectionModel().clearSelection();
-                }
-
-                if (!newV && !sizeCombo.getSelectionModel().isEmpty()) {
-                    zoomScaleByCombo();
-                }
-            });
-
-            viewProperty.isFittedProperty().addListener((o, oldV, newV) -> {
-                if (newV) {
-                    setZoom(-1.0);
-                }
-            });
+            sizeCombo.showingProperty().addListener(sizeComboShowingListener);
+            viewProperty.isFittedProperty().addListener(fittedListener);
 
             zoomInButton.setOnMousePressed(event -> zoomInScale());
             zoomOutButton.setOnMousePressed(event -> zoomOutScale());
@@ -722,14 +730,6 @@ public class ViewController {
             zoomSlider.setOnMouseDragged(e -> zoomBySlider());
             zoomSlider.setOnMouseReleased(e -> zoomBySlider());
 
-            ChangeListener<Object> scaleListener = (o, oldV, newV) -> {
-                Image curImg = photoView.getImage();
-
-                double scale = getPhotoViewScale(curImg);
-                viewProperty.curZoomProperty().set(scale);
-
-                zoomSlider.setValue(scale);
-            };
             photoView.imageProperty().addListener(scaleListener);
             photoView.fitWidthProperty().addListener(scaleListener);
             photoView.fitHeightProperty().addListener(scaleListener);
@@ -785,7 +785,7 @@ public class ViewController {
             Logger.logErr("Disposing ViewController: " + this);
         }
 
-        // 1. 停止并清理幻灯片动画
+        // 1. 停止并清理幻灯片动画，移除播放状态监听
         if (slideShowTimeline != null) {
             stopSlideShow();
 
@@ -796,7 +796,7 @@ public class ViewController {
             slideShowTimeline = null;
         }
 
-        // 2. 解绑 photoView 的鼠标事件
+        // 2. 解绑 photoView 的属性与事件监听
         if (photoView != null) {
             photoView.setOnMousePressed(null);
             photoView.setOnMouseReleased(null);
@@ -806,18 +806,26 @@ public class ViewController {
             photoView.fitHeightProperty().unbind();
             photoView.scaleXProperty().unbind();
             photoView.scaleYProperty().unbind();
+
+            photoView.imageProperty().removeListener(scaleListener);
+            photoView.fitWidthProperty().removeListener(scaleListener);
+            photoView.fitHeightProperty().removeListener(scaleListener);
+            photoView.scaleXProperty().removeListener(scaleListener);
+            photoView.scaleYProperty().removeListener(scaleListener);
+
             photoView = null;
         }
 
         // 3. 解绑 sizeCombo、timeCombo 监听
         if (sizeCombo != null) {
-            sizeCombo.showingProperty().removeListener((o, oldV, newV) -> {});
+            sizeCombo.showingProperty().removeListener(sizeComboShowingListener);
             sizeCombo.getSelectionModel().clearSelection();
             sizeCombo.getItems().clear();
             sizeCombo = null;
         }
         if (timeCombo != null) {
-            timeCombo.valueProperty().removeListener((o, oldV, newV) -> {});
+            timeCombo.valueProperty().removeListener(timeStrListener);
+            timeCombo.getSelectionModel().clearSelection();
             timeCombo.getItems().clear();
             timeCombo = null;
         }
@@ -857,9 +865,20 @@ public class ViewController {
             zoomSlider = null;
         }
 
-        // 5. 解绑 viewProperty 的所有属性监听
+        // 5. 解绑 viewProperty 的属性监听
         if (viewProperty != null) {
             viewProperty.dispose();
+
+            // 移除错误消息监听
+            viewProperty.errMsgProperty().removeListener(errMsgListener);
+
+            // 移除图片播放状态监听
+            viewProperty.isPlayingProperty().removeListener(playListener);
+
+            // 解绑图片适应窗口属性监听
+            viewProperty.isFittedProperty().removeListener(fittedListener);
+
+            viewProperty = null;
         }
 
         // 6. 解绑其它控件绑定
@@ -888,6 +907,13 @@ public class ViewController {
 
         loadMsg.visibleProperty().unbind();
         loadMsg = null;
+
+        errMsgListener = null;
+        playListener = null;
+        timeStrListener = null;
+        sizeComboShowingListener = null;
+        fittedListener = null;
+        scaleListener = null;
 
         if (DEBUG) {
             Logger.logErr("ViewController disposed: " + this);
