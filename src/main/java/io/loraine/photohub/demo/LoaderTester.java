@@ -266,8 +266,6 @@ class preLoadTest {
 
                 CompletableFuture.allOf(loadSingle, preLoad).join();
             }).join();
-        } catch (IOException e) {
-            System.err.println(e.getClass().getName() + ": " + e.getMessage());
         }
     }
 }
