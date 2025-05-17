@@ -449,6 +449,7 @@ public class ViewController implements Closeable {
     private void mouseClickedOnView(MouseEvent event) {
         if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
             viewProperty.isFittedProperty().set(true);
+            photoView.setCursor(Cursor.DEFAULT);
         }
     }
 
