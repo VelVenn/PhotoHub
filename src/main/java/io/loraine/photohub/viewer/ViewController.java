@@ -678,7 +678,7 @@ public class ViewController {
     };
 
     @FXML
-    public void initialize() {
+    private void initialize() {
         try {
             errMsg.setStyle("-fx-text-fill: red;");
 
