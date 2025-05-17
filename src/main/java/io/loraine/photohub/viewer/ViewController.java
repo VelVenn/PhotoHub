@@ -38,6 +38,7 @@ import javafx.scene.control.Separator;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
@@ -222,7 +223,8 @@ public class ViewController {
         slideShowTimeline.setCycleCount(Timeline.INDEFINITE);
         slideShowTimeline.play();
 
-        if (DEBUG) Logger.log("Slide show started with gap: " + gap.toSeconds() + " seconds");
+        if (DEBUG)
+            Logger.log("Slide show started with gap: " + gap.toSeconds() + " seconds");
     }
 
     private void stopSlideShow() {
@@ -256,7 +258,8 @@ public class ViewController {
             String msg = String.format("Invalid time string: %s", timeStr);
             showErrorLater(msg, Duration.seconds(10));
 
-            if (DEBUG) Logger.logErr(msg, e);
+            if (DEBUG)
+                Logger.logErr(msg, e);
             return Duration.seconds(1.0);
         }
     }
@@ -271,7 +274,8 @@ public class ViewController {
             String msg = "Indexing is failed or still in progress.";
             showError(msg, Duration.seconds(15));
 
-            if (DEBUG) Logger.logErr(msg);
+            if (DEBUG)
+                Logger.logErr(msg);
             return true;
         }
 
@@ -280,7 +284,8 @@ public class ViewController {
             String msg = "Current photo is null.";
             showError(msg, Duration.seconds(15));
 
-            if (DEBUG) Logger.logErr(msg);
+            if (DEBUG)
+                Logger.logErr(msg);
             return true;
         }
 
@@ -352,7 +357,8 @@ public class ViewController {
                 String msg = "Image is unloaded.";
                 // showError(msg, Duration.seconds(3));
 
-                if (DEBUG) Logger.logErr(msg);
+                if (DEBUG)
+                    Logger.logErr(msg);
             }
             clampViewOffset();
         } else {
@@ -404,7 +410,8 @@ public class ViewController {
             String msg = String.format("Invalid percent string: %s", percentStr);
             showErrorLater(msg, Duration.seconds(10));
 
-            if (DEBUG) Logger.logErr(msg, e);
+            if (DEBUG)
+                Logger.logErr(msg, e);
             return -1.0;
         }
     }
@@ -413,7 +420,7 @@ public class ViewController {
     private final double[] viewAnchor = {0, 0}; // 图片移动前的位移
 
     /**
-     * 记录鼠标在{@code photoView}内部按下时的坐标和图片的位移，同时改变光标样式为移动
+     * 记录鼠标在{@code photoView}内部按下时的坐标和图片的位移
      */
     private void mousePressedOnView(MouseEvent event) {
         if (!viewProperty.isFittedProperty().get()) {
@@ -422,8 +429,25 @@ public class ViewController {
 
             viewAnchor[0] = photoView.getTranslateX();
             viewAnchor[1] = photoView.getTranslateY();
+        }
+    }
 
-            photoView.setCursor(Cursor.MOVE);
+    private void mouseEnteredOnView(MouseEvent event) {
+        if (!viewProperty.isFittedProperty().get()) {
+            photoView.setCursor(Cursor.OPEN_HAND);
+        }
+    }
+
+    private void mouseExitOnView() {
+        photoView.setCursor(Cursor.DEFAULT);
+    }
+
+    /**
+     * 鼠标双击时，设置图片的缩放模式为自适应缩放
+     */
+    private void mouseClickedOnView(MouseEvent event) {
+        if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
+            viewProperty.isFittedProperty().set(true);
         }
     }
 
@@ -431,7 +455,11 @@ public class ViewController {
      * 鼠标释放时，恢复鼠标的光标
      */
     private void mouseReleasedOnView() {
-        photoView.setCursor(Cursor.DEFAULT);
+        if (viewProperty.isFittedProperty().get()) {
+            photoView.setCursor(Cursor.DEFAULT);
+        } else {
+            photoView.setCursor(Cursor.OPEN_HAND);
+        }
     }
 
     /**
@@ -439,6 +467,8 @@ public class ViewController {
      */
     private void mouseDraggedOnView(MouseEvent event) {
         if (!viewProperty.isFittedProperty().get()) {
+            photoView.setCursor(Cursor.CLOSED_HAND);
+
             double deltaX = event.getSceneX() - mouseAnchor[0];
             double deltaY = event.getSceneY() - mouseAnchor[1];
 
@@ -674,7 +704,6 @@ public class ViewController {
             });
             playButton.setOnMouseClicked(event -> playPhoto());
 
-
             // 设置播放状态监听
             viewProperty.isPlayingProperty().addListener(playListener);
             timeCombo.valueProperty().addListener(timeStrListener);
@@ -718,6 +747,9 @@ public class ViewController {
 
             // 设置图片的缩放属性绑定与监听
             photoView.setOnMousePressed(this::mousePressedOnView);
+            photoView.setOnMouseEntered(this::mouseEnteredOnView);
+            photoView.setOnMouseExited(e -> mouseExitOnView());
+            photoView.setOnMouseClicked(this::mouseClickedOnView);
             photoView.setOnMouseReleased(e -> mouseReleasedOnView());
             photoView.setOnMouseDragged(this::mouseDraggedOnView);
 
@@ -728,7 +760,7 @@ public class ViewController {
             zoomOutButton.setOnMousePressed(event -> zoomOutScale());
 
             zoomSlider.setOnMouseDragged(e -> zoomBySlider());
-            zoomSlider.setOnMouseReleased(e -> zoomBySlider());
+            zoomSlider.setOnMouseReleased(e -> zoomBySlider()); // 点击时竟然能改变值
 
             photoView.imageProperty().addListener(scaleListener);
             photoView.fitWidthProperty().addListener(scaleListener);
@@ -751,7 +783,8 @@ public class ViewController {
             // throw new IOException("Test exception");
         } catch (Exception e) {
             showError(e.getMessage(), 2000);
-            if (DEBUG) Logger.logErr(null, e);
+            if (DEBUG)
+                Logger.logErr(null, e);
         }
 
         Platform.runLater(() -> {
@@ -766,7 +799,8 @@ public class ViewController {
                         loader.preLoadPhotosAsync(curIndex, 1);
                     })
                     .exceptionally(ex -> {
-                        if (DEBUG) Logger.logErr(null, ex);
+                        if (DEBUG)
+                            Logger.logErr(null, ex);
                         return null;
                     });
 
@@ -799,8 +833,12 @@ public class ViewController {
         // 2. 解绑 photoView 的属性与事件监听
         if (photoView != null) {
             photoView.setOnMousePressed(null);
+            photoView.setOnMouseEntered(null);
+            photoView.setOnMouseExited(null);
+            photoView.setOnMouseClicked(null);
             photoView.setOnMouseReleased(null);
             photoView.setOnMouseDragged(null);
+
             photoView.imageProperty().unbind();
             photoView.fitWidthProperty().unbind();
             photoView.fitHeightProperty().unbind();
@@ -900,6 +938,7 @@ public class ViewController {
         rootPane = null;
         topHBox = null;
         topFilling = null;
+        photoStatus = null;
 
         centerStackPane.clipProperty().unbind();
         centerStackPane.setClip(null);
@@ -920,5 +959,3 @@ public class ViewController {
         }
     }
 }
-
-
