@@ -52,6 +52,7 @@ import javafx.util.Duration;
 
 import javafx.application.Platform;
 
+import java.io.Closeable;
 import java.nio.file.Path;
 
 import org.controlsfx.control.StatusBar;
@@ -65,7 +66,7 @@ import java.io.IOException;
 
 import static javafx.geometry.Orientation.VERTICAL;
 
-public class ViewController {
+public class ViewController implements Closeable {
 
     @FXML
     private BorderPane rootPane;
@@ -814,7 +815,7 @@ public class ViewController {
         });
     }
 
-    public void dispose() {
+    private void dispose() {
         if (DEBUG) {
             Logger.logErr("Disposing ViewController: " + this);
         }
@@ -905,7 +906,7 @@ public class ViewController {
 
         // 5. 解绑 viewProperty 的属性监听
         if (viewProperty != null) {
-            viewProperty.dispose();
+            viewProperty.close();
 
             // 移除错误消息监听
             viewProperty.errMsgProperty().removeListener(errMsgListener);
@@ -956,6 +957,19 @@ public class ViewController {
 
         if (DEBUG) {
             Logger.logErr("ViewController disposed: " + this);
+        }
+    }
+
+    @Override
+    public void close() {
+        if (DEBUG) {
+            Logger.logErr("Closing ViewController: " + this);
+        }
+
+        dispose();
+
+        if (DEBUG) {
+            Logger.logErr("ViewController closed: " + this);
         }
     }
 }

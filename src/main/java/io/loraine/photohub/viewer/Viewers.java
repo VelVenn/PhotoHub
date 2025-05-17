@@ -158,7 +158,7 @@ public class Viewers {
             if (DEBUG) Logger.logErr("View Stage closed which is open by: " + photoPath);
             LoaderManager.getInstance().release(parentPath);
             stage.titleProperty().unbind();
-            vc.dispose();
+            vc.close();
         });
 
         stage.titleProperty().bind(vc.curPhotoNameProperty());

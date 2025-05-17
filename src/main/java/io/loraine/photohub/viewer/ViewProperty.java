@@ -27,10 +27,11 @@ import javafx.beans.property.*;
 import javafx.beans.value.ChangeListener;
 import javafx.scene.image.Image;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 
-public class ViewProperty {
+public class ViewProperty implements Closeable {
     private final IntegerProperty curIdx = new SimpleIntegerProperty(this, "curIdx", -1);
     private final IntegerProperty photoCount = new SimpleIntegerProperty(this, "photoCount", -1);
 
@@ -138,7 +139,7 @@ public class ViewProperty {
         Platform.runLater(() -> scaleListener.changed(null, null, null));
     }
 
-    public void dispose() {
+    private void dispose() {
         if (photoListener != null) {
             curPhoto.removeListener(photoListener);
             photoListener = null;
@@ -153,6 +154,11 @@ public class ViewProperty {
             isFitted.removeListener(scaleListener);
             scaleListener = null;
         }
+    }
+
+    @Override
+    public void close() {
+        dispose();
     }
 
     CompletableFuture<Void> initScanDir() {
