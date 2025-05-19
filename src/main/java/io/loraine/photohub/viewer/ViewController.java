@@ -138,7 +138,7 @@ public class ViewController implements Closeable {
     }
 
     /**
-     * Constructor for ViewController, controller for the Photoview.fxml
+     * Constructor for ViewController, controller for the PhotoView.fxml
      * <p>
      * The {@code PhotoLoader} loader is a closeable instance for loading photos
      * and should have the same lifetime as the controller.
@@ -614,7 +614,7 @@ public class ViewController implements Closeable {
 
     /**
      * Set the stage's minimum size, who holds this controller,
-     * to meet the Photoview.fxml's layout requirements. ( 540 x 200 )
+     * to meet the PhotoView.fxml's layout requirements. ( 540 x 200 )
      *
      * @param stage The stage to set the minimum size for
      */
