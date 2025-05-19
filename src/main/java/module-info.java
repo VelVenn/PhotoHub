@@ -2,8 +2,6 @@ module io.loraine.photohub {
     requires javafx.controls;
     requires javafx.swing;
     requires javafx.fxml;
-    requires javafx.web;
-
     requires transitive javafx.graphics;
 
     requires org.controlsfx.controls;
