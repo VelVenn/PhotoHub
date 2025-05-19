@@ -517,6 +517,9 @@ public class PhotoLoader implements Closeable {
         if (path == null) {
             throw new NullPointerException("Path cannot be null.");
         }
+
+        path = path.normalize().toAbsolutePath();
+
         if (!Files.exists(path)) {
             throw new NoSuchFileException("Directory does not exist: " + path);
         }

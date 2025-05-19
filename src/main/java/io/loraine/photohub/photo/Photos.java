@@ -57,6 +57,8 @@ public class Photos {
             throw new NullPointerException("Path cannot be null.");
         }
 
+        path = path.normalize().toAbsolutePath();
+
         if (!Files.exists(path)) {
             throw new NoSuchFileException("File does not exist: " + path);
         }
@@ -81,6 +83,9 @@ public class Photos {
 
     public static boolean isValidPhoto(Path path) {
         if (path == null) return false;
+
+        path = path.normalize().toAbsolutePath();
+
         if (!Files.exists(path)) return false;
         if (Files.isDirectory(path)) return false;
         if (!Files.isReadable(path)) return false;
@@ -100,6 +105,8 @@ public class Photos {
             throw new NullPointerException("Path cannot be null.");
         }
 
+        path = path.normalize().toAbsolutePath();
+
         String name = path.getFileName().toString();
         int dotIndex = name.lastIndexOf('.');
         return (dotIndex == -1 || dotIndex == name.length() - 1)
@@ -111,6 +118,8 @@ public class Photos {
             throw new NullPointerException("Name cannot be null.");
         }
 
+        name = name.trim(); // remove leading and trailing spaces
+
         int dotIndex = name.lastIndexOf('.');
         return (dotIndex == -1 || dotIndex == name.length() - 1)
                 ? null : name.substring(dotIndex + 1).toLowerCase();
@@ -120,6 +129,8 @@ public class Photos {
         if (extension == null) {
             throw new IOException("No file extension found.");
         }
+
+        extension = extension.toLowerCase().trim();
 
         if (!SUPPORTED_TYPES.contains(extension)) {
             throw new IOException("Unsupported file extension: " + extension);
@@ -132,7 +143,13 @@ public class Photos {
      * @param extension Extension name in lower case
      */
     public static boolean isSupportedExtension(String extension) {
-        return extension != null && SUPPORTED_TYPES.contains(extension);
+        if (extension == null) {
+            return false;
+        }
+
+        extension = extension.toLowerCase().trim();
+
+        return SUPPORTED_TYPES.contains(extension);
     }
 
     public static Set<String> getSupportedTypes() {

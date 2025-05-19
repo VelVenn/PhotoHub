@@ -30,6 +30,12 @@ public class LoaderManager {
     }
 
     public PhotoLoader acquire(Path directory) {
+        if (directory == null) {
+            throw new NullPointerException("Directory cannot be null");
+        }
+
+        directory = directory.normalize().toAbsolutePath();
+
         LoaderReference reference = referenceMap.computeIfAbsent(directory, dir -> {
             PhotoLoader loader = new PhotoLoader(
                     500 * 1024 * 1024,
@@ -52,6 +58,12 @@ public class LoaderManager {
     }
 
     public void release(Path directory) {
+        if (directory == null) {
+            throw new NullPointerException("Directory cannot be null");
+        }
+
+        directory = directory.normalize().toAbsolutePath();
+
         referenceMap.computeIfPresent(directory, (dir, ref) -> {
             if (ref.release()) {
                 return null;

@@ -64,7 +64,7 @@ public class Photo {
         Photos.validatePath(path);
 
         photoPath = path;
-        parent = path.getParent();
+        parent = path.getParent().normalize().toAbsolutePath();
 
         name = path.getFileName().toString();
         type = Photos.getFileExtension(name);
@@ -104,7 +104,7 @@ public class Photo {
         Photos.validatePath(pathLiteral);
 
         photoPath = Paths.get(pathLiteral);
-        parent = photoPath.getParent();
+        parent = photoPath.getParent().normalize().toAbsolutePath();
 
         name = photoPath.getFileName().toString();
         type = Photos.getFileExtension(name);
@@ -146,8 +146,8 @@ public class Photo {
      * @param noValidation Any value will do.
      */
     public Photo(Path path, boolean noValidation) {
-        photoPath = path;
-        parent = path.getParent();
+        photoPath = path.normalize().toAbsolutePath();
+        parent = path.getParent().normalize().toAbsolutePath();
 
         name = photoPath.getFileName().toString();
         type = Photos.getFileExtension(name);
