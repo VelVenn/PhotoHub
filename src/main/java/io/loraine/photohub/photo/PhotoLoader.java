@@ -266,7 +266,7 @@ public class PhotoLoader implements Closeable {
     //TODO New cache strategy for gif file should be considered, currently it is simply avoid from being cached.
     public CompletableFuture<Image> loadPhotoAsync(Photo photo) {
         if (photo == null) {
-            throw new NullPointerException("Photo cannot be null");
+            return CompletableFuture.failedFuture(new NullPointerException("Photo cannot be null."));
         }
 
         Photo realPhoto =
