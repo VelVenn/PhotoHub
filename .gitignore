@@ -39,4 +39,6 @@ build/
 
 ### Project ###
 /src/main/resources/io/loraine/photohub/Default_Resources/Original load method.txt
-/hs_err_pid29596.log
+/dependency-reduced-pom.xml
+/installer-win.bat
+/installer-mac.sh
