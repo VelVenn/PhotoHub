@@ -37,6 +37,7 @@ import javafx.scene.control.Separator;
 
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.CacheHint;
 
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
@@ -778,6 +779,7 @@ public class ViewController implements Closeable {
             photoView.setPreserveRatio(true);
             photoView.setSmooth(true);
             photoView.setCache(true);
+            photoView.setCacheHint(CacheHint.QUALITY);
 
             sizeCombo.getItems().addAll("Fit", "20%", "50%", "70%", "100%", "150%", "200%", "300%", "500%");
             timeCombo.getItems().addAll("1s", "2s", "3s", "5s", "10s", "20s", "30s", "60s", "0.01s");
