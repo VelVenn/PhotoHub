@@ -73,6 +73,7 @@ public class FileManagerController {
     private Tab settingsTab; // 绑定到设置页面的 Tab
 
 
+    private ThumbLoader thumbLoader = new ThumbLoader(80,80,200,8,120);
     private double lastManualPosition = -1; // 记录用户手动调整的位置
     private double dragStartX, dragStartY;
     private final List<VBox> selectedItems = new ArrayList<>();
@@ -171,7 +172,7 @@ public class FileManagerController {
         });
 
         // 记录用户手动调整的位置
-        mainSplitPane.getDividers().get(0).positionProperty().addListener((obs, oldVal, newVal) -> {
+        mainSplitPane.getDividers().getFirst().positionProperty().addListener((obs, oldVal, newVal) -> {
             if (!mainSplitPane.getScene().getWindow().isShowing()) return;
 
             // 检查是否是用户拖动（而非我们的程序调整）
@@ -294,6 +295,11 @@ public class FileManagerController {
     // 显示文件到右侧面板
     private void showFilesInTilePane(File directory) {
         clearTilePane();
+        // try {
+        //     thumbLoader = new ThumbLoader();
+        // } catch (IOException e) {
+        //     throw new RuntimeException(e);
+        // }
         File[] files = directory.listFiles();
         if (files == null) return;
 //        Arrays.sort(files, Comparator.comparing(File::getName));
@@ -354,6 +360,17 @@ public class FileManagerController {
         // 设置缩略图
         icon.setPreserveRatio(true);
         icon.setImage(loadIcon(file));
+        if (App.showThumbnail && App.betterThumbnail && !file.isDirectory()) {
+//            try {
+//                ThumbnailLoader.loadThumbnailAsync(file.toURI().toURL().toString(), icon);
+//            } catch (MalformedURLException e) {
+//                throw new RuntimeException(e);
+//            }
+            Photo photo = new Photo(file.toPath(), true);
+            thumbLoader.loadPhotoAsync(photo).thenAccept(image -> {
+                Platform.runLater(() -> icon.setImage(image));
+            });
+        }
 
         Label fileNameLabel = new Label(file.getName());
         fileNameLabel.setMaxWidth(95);
@@ -484,28 +501,33 @@ public class FileManagerController {
             }
 
             if (App.betterThumbnail) {
-                // 加载原始图片
-                Image originalImage = null;
-                try {
-                    originalImage = new Image(file.toURI().toURL().toString());
-                } catch (MalformedURLException e) {
-                    throw new RuntimeException(e);
-                }
+//                // 加载原始图片
+//                Image originalImage = null;
+//                try {
+//                    originalImage = new Image(file.toURI().toURL().toString());
+//                } catch (MalformedURLException e) {
+//                    throw new RuntimeException(e);
+//                }
+//
+//                // 计算缩放比例
+//                double widthRatio = 80.0 / originalImage.getWidth();
+//                double heightRatio = 80.0 / originalImage.getHeight();
+//                double scale = Math.min(widthRatio, heightRatio);
+//
+//                // 生成缩略图
+//                double w = (originalImage.getWidth() * scale);
+//                double h = (originalImage.getHeight() * scale);
+//                try {
+//                    return new Image(file.toURI().toURL().toString(), w, h, true, true);
+//                } catch (MalformedURLException e) {
+//                    throw new RuntimeException(e);
+//                }
 
-                // 计算缩放比例
-                double widthRatio = 80.0 / originalImage.getWidth();
-                double heightRatio = 80.0 / originalImage.getHeight();
-                double scale = Math.min(widthRatio, heightRatio);
-
-                // 生成缩略图
-                double w = (originalImage.getWidth() * scale);
-                double h = (originalImage.getHeight() * scale);
-//                System.out.println("w" + w);
-//                System.out.println("h" + h);
                 try {
-                    return new Image(file.toURI().toURL().toString(), w, h, true, true);
-                } catch (MalformedURLException e) {
-                    throw new RuntimeException(e);
+                    var iconURL = Objects.requireNonNull(getClass().getResource("/io/loraine/photohub/Default_Resources/file.png"));
+                    return new Image(iconURL.toString());
+                } catch (Exception e1) {
+                    throw new RuntimeException(e1);
                 }
 
             } else {
@@ -652,7 +674,7 @@ public class FileManagerController {
 
     // 范围选择
     private void rangeSelect(VBox endItem) {
-        int startIndex = allFileBoxes.indexOf(selectedItems.get(selectedItems.size() - 1));
+        int startIndex = allFileBoxes.indexOf(selectedItems.getLast());
         int endIndex = allFileBoxes.indexOf(endItem);
 
         if (startIndex != -1 && endIndex != -1) {
@@ -736,5 +758,9 @@ public class FileManagerController {
         for (VBox fileBox : toDeselect) {
             deselectItem(fileBox);
         }
+    }
+
+    public void dispose() {
+        thumbLoader.close();
     }
 }

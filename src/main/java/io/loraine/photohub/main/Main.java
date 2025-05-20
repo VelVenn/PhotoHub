@@ -18,6 +18,7 @@
 
 package io.loraine.photohub.main;
 
+import io.loraine.photohub.fileman.FileManagerController;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -39,6 +40,11 @@ public class Main extends Application {
         primaryStage.setTitle("PhotoHub");
         primaryStage.setScene(scene);
         primaryStage.show();
+
+        FileManagerController controller = loader.getController();
+        primaryStage.setOnCloseRequest(event -> {
+            controller.dispose();
+        });
     }
 
     public static void main(String[] args) {
