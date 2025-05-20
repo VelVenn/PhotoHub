@@ -23,6 +23,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 
 public class Main extends Application {
     @Override
@@ -35,7 +36,7 @@ public class Main extends Application {
 
         // 设置场景和窗口标题
         Scene scene = new Scene(root, 1000, 600);
-        primaryStage.setTitle("Fileman");
+        primaryStage.setTitle("PhotoHub");
         primaryStage.setScene(scene);
         primaryStage.show();
     }

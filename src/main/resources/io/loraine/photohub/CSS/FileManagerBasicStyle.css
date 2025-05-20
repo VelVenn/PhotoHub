@@ -261,6 +261,7 @@
     -fx-border-radius: 18px; /* 圆角 */
     -fx-background-radius: 18px; /* 背景圆角 */
     -fx-border-color: transparent; /* 边框透明 */
+    -fx-font-weight: bold; /* 设置文本加粗 */
 }
 
 /* 悬停效果 */

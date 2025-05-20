@@ -20,6 +20,7 @@ package io.loraine.photohub.fileman;
 
 import io.loraine.photohub.photo.Photo;
 import io.loraine.photohub.photo.Photos;
+import io.loraine.photohub.photo.thumb.ThumbLoader;
 import io.loraine.photohub.util.Logger;
 import io.loraine.photohub.viewer.Viewers;
 
@@ -64,6 +65,17 @@ public class FileManagerController {
     private Rectangle selectionRect;
     @FXML
     private SplitPane mainSplitPane;
+    @FXML
+    private TabPane rightTabPane; // 绑定到右侧的 TabPane
+    @FXML
+    private Tab settingsTab; // 绑定到设置页面的 Tab
+
+
+    private double lastManualPosition = -1; // 记录用户手动调整的位置
+    private double dragStartX, dragStartY;
+    private final List<VBox> selectedItems = new ArrayList<>();
+    private final List<VBox> allFileBoxes = new ArrayList<>();
+    private double selectedSize = 0;
 
     private static final boolean DEBUG = false;
 
@@ -112,19 +124,6 @@ public class FileManagerController {
             rightTabPane.getSelectionModel().select(0);
         }
     }
-
-    @FXML
-    private TabPane rightTabPane; // 绑定到右侧的 TabPane
-
-    @FXML
-    private Tab settingsTab; // 绑定到设置页面的 Tab
-
-
-    private double lastManualPosition = -1; // 记录用户手动调整的位置
-    private double dragStartX, dragStartY;
-    private final List<VBox> selectedItems = new ArrayList<>();
-    private final List<VBox> allFileBoxes = new ArrayList<>();
-    private double selectedSize = 0;
 
     @FXML
     public void initialize() {
@@ -194,13 +193,15 @@ public class FileManagerController {
             if (root.isDirectory()) rootItem.getChildren().add(createNode(root));
         }
 
-        fileTree.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
-            if (newVal != null) {
-                File selectedFile = newVal.getValue();
-                if (selectedFile.isDirectory()) {
-                    showFilesInTilePane(selectedFile);
-                } else {
-                    clearTilePane();
+        fileTree.setOnMouseClicked(mouseEvent -> {
+            // 如果打开了设置页面就把它关了
+            if (rightTabPane.getSelectionModel().getSelectedIndex() == 1) {
+                rightTabPane.getSelectionModel().select(0);
+            }
+            TreeItem<File> selectedItem = fileTree.getSelectionModel().getSelectedItem();
+            if (selectedItem != null) {
+                if (fileTree.getSelectionModel().getSelectedItems().contains(selectedItem)) {
+                    showFilesInTilePane(selectedItem.getValue());
                 }
             }
         });
@@ -569,7 +570,6 @@ public class FileManagerController {
     }
 
     // 处理文件项点击
-    // TODO 添加图片点击显示功能
     private void handleFileItemClick(VBox fileBox, MouseEvent event) {
         if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
             Path path = Paths.get(fileBox.getUserData().toString());
@@ -628,6 +628,10 @@ public class FileManagerController {
 
     // 选择项目
     private void selectItem(VBox fileBox) {
+        var file = (File) (fileBox.getUserData());
+        if (file.isDirectory()) {
+            return;
+        }
         if (!selectedItems.contains(fileBox)) {
             selectedItems.add(fileBox);
             selectedSize += ((File) (fileBox.getUserData())).length() / (1024.0 * 1024.0);
