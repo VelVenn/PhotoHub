@@ -17,3 +17,11 @@
     -fx-border-color: #cccccc; /* 开关滑块的边框颜色 */
     -fx-border-radius: 50%; /* 圆形滑块 */
 }
+
+/* 自定义 JFXToggleButton 的样式 */
+.jfx-toggle-button {
+    -fx-min-height: 40px; /* 设置最小高度 */
+    -fx-pref-height: 40px; /* 设置首选高度 */
+    -fx-max-height: 40px; /* 设置最大高度 */
+    -fx-padding: 10px; /* 调整内边距 */
+}

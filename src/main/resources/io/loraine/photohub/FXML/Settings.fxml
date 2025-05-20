@@ -28,6 +28,10 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.layout.Region?>
 
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.image.Image?>
+<?import com.jfoenix.controls.JFXToggleButton?>
+
 <VBox xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="io.loraine.photohub.fileman.SettingsController"
       alignment="TOP_CENTER" spacing="10"
@@ -40,25 +44,38 @@
     </padding>
 
     <VBox spacing="10" styleClass="container">
-        <Label text="应用设置" style="-fx-text-alignment: left; -fx-font-weight: bold;" />
+        <Label text="显示设置" style="-fx-text-alignment: left; -fx-font-weight: bold; -fx-font-size: 16px;" />
     </VBox>
-
 
     <HBox spacing="10" alignment="CENTER_LEFT" fillHeight="false">
         <Label text="显示文件夹图标以供跳转" />
         <Pane HBox.hgrow="ALWAYS" />
-        <ToggleSwitch fx:id="FolderToggle"/>
+        <JFXToggleButton fx:id="FolderToggle"/>
     </HBox>
 
     <HBox spacing="10" alignment="CENTER_LEFT" fillHeight="false">
         <Label text="加载图片预览图" />
         <Pane HBox.hgrow="ALWAYS" />
-        <ToggleSwitch fx:id="thumbnailToggle" selected="true"/>
+        <JFXToggleButton fx:id="thumbnailToggle" selected="true"/>
+    </HBox>
+
+    <HBox spacing="10" alignment="CENTER_LEFT" fillHeight="false">
+        <Label text="优化预览图加载" />
+        <Pane HBox.hgrow="ALWAYS" />
+        <JFXToggleButton fx:id="betterThumbnailLoader" selected="true"/>
     </HBox>
 
     <Region prefHeight="40" VBox.vgrow="NEVER" />
 
-    <Label text="PhotoHub" style="-fx-font-size: 26px; -fx-font-weight: bold;" />
+    <VBox spacing="10" styleClass="container">
+        <Label text="应用信息" style="-fx-text-alignment: left; -fx-font-weight: bold; -fx-font-size: 16px;" />
+    </VBox>
+
+    <!-- 图片显示 -->
+    <ImageView fitWidth="200" fitHeight="200" preserveRatio="true">
+        <Image url="@../Default_Resources/logo.png" />
+    </ImageView>
+
     <Label text="基于 JavaFX 的现代风格图片浏览器" style="-fx-font-size: 12px;" />
     <Button text="查看源代码" onAction="#viewSourceCode" styleClass="top-button" />
 

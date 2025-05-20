@@ -20,12 +20,14 @@ package io.loraine.photohub.fileman;
 
 import io.loraine.photohub.photo.Photo;
 import io.loraine.photohub.photo.Photos;
+import io.loraine.photohub.photo.thumb.ThumbLoader;
 import io.loraine.photohub.util.Logger;
 import io.loraine.photohub.viewer.Viewers;
 
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Bounds;
 import javafx.geometry.Pos;
@@ -41,6 +43,7 @@ import javafx.scene.shape.Rectangle;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -64,6 +67,17 @@ public class FileManagerController {
     private Rectangle selectionRect;
     @FXML
     private SplitPane mainSplitPane;
+    @FXML
+    private TabPane rightTabPane; // 绑定到右侧的 TabPane
+    @FXML
+    private Tab settingsTab; // 绑定到设置页面的 Tab
+
+
+    private double lastManualPosition = -1; // 记录用户手动调整的位置
+    private double dragStartX, dragStartY;
+    private final List<VBox> selectedItems = new ArrayList<>();
+    private final List<VBox> allFileBoxes = new ArrayList<>();
+    private double selectedSize = 0;
 
     private static final boolean DEBUG = false;
 
@@ -105,6 +119,19 @@ public class FileManagerController {
     }
 
     @FXML
+    public void refreshButtonHandler() {
+        if (rightTabPane.getSelectionModel().getSelectedIndex() == 1) {
+            rightTabPane.getSelectionModel().select(0);
+        }
+        TreeItem<File> selectedItem = fileTree.getSelectionModel().getSelectedItem();
+        if (selectedItem != null) {
+            if (fileTree.getSelectionModel().getSelectedItems().contains(selectedItem)) {
+                showFilesInTilePane(selectedItem.getValue());
+            }
+        }
+    }
+
+    @FXML
     public void openSettings() {
         if (rightTabPane.getSelectionModel().getSelectedIndex() == 0) {
             rightTabPane.getSelectionModel().select(1);
@@ -112,19 +139,6 @@ public class FileManagerController {
             rightTabPane.getSelectionModel().select(0);
         }
     }
-
-    @FXML
-    private TabPane rightTabPane; // 绑定到右侧的 TabPane
-
-    @FXML
-    private Tab settingsTab; // 绑定到设置页面的 Tab
-
-
-    private double lastManualPosition = -1; // 记录用户手动调整的位置
-    private double dragStartX, dragStartY;
-    private final List<VBox> selectedItems = new ArrayList<>();
-    private final List<VBox> allFileBoxes = new ArrayList<>();
-    private double selectedSize = 0;
 
     @FXML
     public void initialize() {
@@ -194,13 +208,15 @@ public class FileManagerController {
             if (root.isDirectory()) rootItem.getChildren().add(createNode(root));
         }
 
-        fileTree.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
-            if (newVal != null) {
-                File selectedFile = newVal.getValue();
-                if (selectedFile.isDirectory()) {
-                    showFilesInTilePane(selectedFile);
-                } else {
-                    clearTilePane();
+        fileTree.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            // 如果打开了设置页面就把它关了
+            if (rightTabPane.getSelectionModel().getSelectedIndex() == 1) {
+                rightTabPane.getSelectionModel().select(0);
+            }
+            TreeItem<File> selectedItem = fileTree.getSelectionModel().getSelectedItem();
+            if (selectedItem != null) {
+                if (fileTree.getSelectionModel().getSelectedItems().contains(selectedItem)) {
+                    showFilesInTilePane(selectedItem.getValue());
                 }
             }
         });
@@ -278,7 +294,6 @@ public class FileManagerController {
     // 显示文件到右侧面板
     private void showFilesInTilePane(File directory) {
         clearTilePane();
-
         File[] files = directory.listFiles();
         if (files == null) return;
 //        Arrays.sort(files, Comparator.comparing(File::getName));
@@ -333,10 +348,11 @@ public class FileManagerController {
         fileBox.setMaxSize(100, 120);
 
         ImageView icon = new ImageView();
-        icon.setFitWidth(40);
-        icon.setFitHeight(40);
+        icon.setFitWidth(80);
+        icon.setFitHeight(80);
 
         // 设置缩略图
+        icon.setPreserveRatio(true);
         icon.setImage(loadIcon(file));
 
         Label fileNameLabel = new Label(file.getName());
@@ -451,14 +467,14 @@ public class FileManagerController {
             // 直接显示文件夹图标
             try {
                 var iconURL = Objects.requireNonNull(getClass().getResource("/io/loraine/photohub/Default_Resources/folder.png"));
-                return new Image(iconURL.toString());
+                return new Image(iconURL.toString(), true);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         } else {
-            // 加载实际文件(缩略图)后显示
 
             if (!App.showThumbnail) {
+                // 直接显示占位图, 不加载缩略图
                 try {
                     var iconURL = Objects.requireNonNull(getClass().getResource("/io/loraine/photohub/Default_Resources/file.png"));
                     return new Image(iconURL.toString());
@@ -467,18 +483,45 @@ public class FileManagerController {
                 }
             }
 
-            try {
-                return new Image(file.toURI().toURL().toString());
-            } catch (Exception e) {
-                // 如果加载失败, 则显示默认图片图标
+            if (App.betterThumbnail) {
+                // 加载原始图片
+                Image originalImage = null;
                 try {
-                    var iconURL = Objects.requireNonNull(getClass().getResource("/io/loraine/photohub/Default_Resources/file.png"));
-                    return new Image(iconURL.toString());
-                } catch (Exception e1) {
-                    throw new RuntimeException(e1);
+                    originalImage = new Image(file.toURI().toURL().toString());
+                } catch (MalformedURLException e) {
+                    throw new RuntimeException(e);
+                }
+
+                // 计算缩放比例
+                double widthRatio = 80.0 / originalImage.getWidth();
+                double heightRatio = 80.0 / originalImage.getHeight();
+                double scale = Math.min(widthRatio, heightRatio);
+
+                // 生成缩略图
+                double w = (originalImage.getWidth() * scale);
+                double h = (originalImage.getHeight() * scale);
+//                System.out.println("w" + w);
+//                System.out.println("h" + h);
+                try {
+                    return new Image(file.toURI().toURL().toString(), w, h, true, true);
+                } catch (MalformedURLException e) {
+                    throw new RuntimeException(e);
+                }
+
+            } else {
+                // 使用 Image 直接加载原图, 如果加载失败再加载占位图
+                try {
+                    return new Image(file.toURI().toURL().toString(), true);
+                } catch (Exception e) {
+                    // 如果加载失败, 则显示默认图片图标
+                    try {
+                        var iconURL = Objects.requireNonNull(getClass().getResource("/io/loraine/photohub/Default_Resources/file.png"));
+                        return new Image(iconURL.toString());
+                    } catch (Exception e1) {
+                        throw new RuntimeException(e1);
+                    }
                 }
             }
-
         }
 
     }
@@ -569,7 +612,6 @@ public class FileManagerController {
     }
 
     // 处理文件项点击
-    // TODO 添加图片点击显示功能
     private void handleFileItemClick(VBox fileBox, MouseEvent event) {
         if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
             Path path = Paths.get(fileBox.getUserData().toString());
@@ -628,6 +670,10 @@ public class FileManagerController {
 
     // 选择项目
     private void selectItem(VBox fileBox) {
+        var file = (File) (fileBox.getUserData());
+        if (file.isDirectory()) {
+            return;
+        }
         if (!selectedItems.contains(fileBox)) {
             selectedItems.add(fileBox);
             selectedSize += ((File) (fileBox.getUserData())).length() / (1024.0 * 1024.0);

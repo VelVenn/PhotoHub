@@ -23,6 +23,7 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.shape.*?>
 
+<?import org.kordamp.ikonli.javafx.FontIcon?>
 <BorderPane stylesheets="@../CSS/FileManagerBasicStyle.css" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="io.loraine.photohub.fileman.FileManagerController">
 
     <top>
@@ -32,7 +33,7 @@
             </padding>
 <!--            <Label fx:id="pathLabel" text="请选择一个文件夹" />-->
             <VBox spacing="2">
-                <Label fx:id="locationLabel" text="请选择一个文件夹" />
+                <Label fx:id="locationLabel" text="请选择一个文件夹" style="-fx-font-weight: bold; -fx-font-size: 16px;"/>
                 <Label fx:id="pathStatisticLabel" text="以显示统计信息" />
             </VBox>
 
@@ -40,16 +41,36 @@
             <!-- 添加伸缩空间 -->
             <Region HBox.hgrow="ALWAYS" />
 
-            <!-- 添加按钮 -->
-            <Button onAction="#pasteButtonHandler" styleClass="top-button" text="粘贴" />
-            <Button onAction="#handleSelectAll" styleClass="top-button" text="全选图片" />
-            <Button onAction="#handleCancelSelection" styleClass="top-button" text="取消选择" />
-            <Button onAction="#openSettings" styleClass="top-button" text="设置" />
+            <Button onAction="#refreshButtonHandler" styleClass="top-button">
+                <graphic>
+                    <FontIcon iconLiteral="mdmz-refresh" iconSize="24" />
+                </graphic>
+            </Button>
+            <Button onAction="#pasteButtonHandler" styleClass="top-button">
+                <graphic>
+                    <FontIcon iconLiteral="mdral-content_paste" iconSize="24" />
+                </graphic>
+            </Button>
+            <Button onAction="#handleSelectAll" styleClass="top-button">
+                <graphic>
+                    <FontIcon iconLiteral="mdoal-border_all" iconSize="24" />
+                </graphic>
+            </Button>
+            <Button onAction="#handleCancelSelection" styleClass="top-button">
+                <graphic>
+                    <FontIcon iconLiteral="mdoal-cancel" iconSize="24" />
+                </graphic>
+            </Button>
+            <Button onAction="#openSettings" styleClass="top-button">
+                <graphic>
+                    <FontIcon iconLiteral="mdomz-settings" iconSize="24" />
+                </graphic>
+            </Button>
+
         </HBox>
     </top>
 
     <center>
-
         <SplitPane fx:id="mainSplitPane" dividerPositions="0.5" styleClass="no-border-splitpane">
             <!-- 左侧树视图（固定宽度） -->
             <TreeView fx:id="fileTree">

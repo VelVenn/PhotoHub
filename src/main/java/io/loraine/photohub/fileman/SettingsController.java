@@ -18,9 +18,9 @@
 
 package io.loraine.photohub.fileman;
 
+import com.jfoenix.controls.JFXToggleButton;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import org.controlsfx.control.ToggleSwitch;
 
 import java.awt.*;
 import java.io.IOException;
@@ -50,21 +50,24 @@ public class SettingsController {
     }
 
     @FXML
-    private ToggleSwitch FolderToggle;
+    public JFXToggleButton betterThumbnailLoader;
 
     @FXML
-    private ToggleSwitch thumbnailToggle;
+    private JFXToggleButton FolderToggle;
+
+    @FXML
+    private JFXToggleButton thumbnailToggle;
 
     @FXML
     public void initialize() {
-        // 监听开关 1 的状态变化
         FolderToggle.selectedProperty().addListener((observable, oldValue, newValue) -> {
             App.showFolder = newValue;
         });
-
-        // 监听开关 2 的状态变化
         thumbnailToggle.selectedProperty().addListener((observable, oldValue, newValue) -> {
             App.showThumbnail = newValue;
+        });
+        betterThumbnailLoader.selectedProperty().addListener((observable, oldValue, newValue) -> {
+            App.betterThumbnail = newValue;
         });
     }
 
