@@ -24,7 +24,7 @@
 
             <!-- 添加按钮 -->
             <Button onAction="#pasteButtonHandler" styleClass="top-button" text="粘贴" />
-            <Button onAction="#handleSelectAll" styleClass="top-button" text="全选" />
+            <Button onAction="#handleSelectAll" styleClass="top-button" text="全选图片" />
             <Button onAction="#handleCancelSelection" styleClass="top-button" text="取消选择" />
             <Button onAction="#openSettings" styleClass="top-button" text="设置" />
         </HBox>

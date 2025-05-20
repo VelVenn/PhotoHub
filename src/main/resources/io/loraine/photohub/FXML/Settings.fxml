@@ -4,11 +4,44 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.layout.VBox?>
 
+<?import javafx.scene.layout.HBox?>
+<?import org.controlsfx.control.ToggleSwitch?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.layout.Region?>
+
 <VBox xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="io.loraine.photohub.fileman.SettingsController"
-      alignment="CENTER" spacing="10">
+      alignment="TOP_CENTER" spacing="10"
+      stylesheets="@../CSS/SettingsStyle.css"
+      styleClass="vbox-container"
+>
 
-    <Label text="PhotoHub FM" style="-fx-font-size: 18px; -fx-font-weight: bold;" />
-    <Button text="项目网站" onAction="#openWebsite" styleClass="top-button" />
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20" />
+    </padding>
+
+    <VBox spacing="10" styleClass="container">
+        <Label text="应用设置" style="-fx-text-alignment: left; -fx-font-weight: bold;" />
+    </VBox>
+
+
+    <HBox spacing="10" alignment="CENTER_LEFT" fillHeight="false">
+        <Label text="显示文件夹图标以供跳转" />
+        <Pane HBox.hgrow="ALWAYS" />
+        <ToggleSwitch fx:id="FolderToggle"/>
+    </HBox>
+
+    <HBox spacing="10" alignment="CENTER_LEFT" fillHeight="false">
+        <Label text="加载图片预览图" />
+        <Pane HBox.hgrow="ALWAYS" />
+        <ToggleSwitch fx:id="thumbnailToggle" selected="true"/>
+    </HBox>
+
+    <Region prefHeight="40" VBox.vgrow="NEVER" />
+
+    <Label text="PhotoHub" style="-fx-font-size: 26px; -fx-font-weight: bold;" />
+    <Label text="基于 JavaFX 的现代风格图片浏览器" style="-fx-font-size: 12px;" />
+    <Button text="查看源代码" onAction="#viewSourceCode" styleClass="top-button" />
 
 </VBox>

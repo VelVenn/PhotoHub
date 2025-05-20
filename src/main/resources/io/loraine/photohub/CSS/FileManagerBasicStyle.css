@@ -69,6 +69,13 @@
     -fx-font-weight: normal;
 }
 
+.file-label {
+    -fx-text-fill: #333;
+    -fx-font-size: 12px;
+    -fx-font-weight: normal;
+    -fx-pref-height: 40px;
+}
+
 /* 选中样式 */
 .file-item.selected .label {
     -fx-text-fill: #001f25;
