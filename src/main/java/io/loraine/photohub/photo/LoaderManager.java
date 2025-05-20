@@ -34,7 +34,7 @@ public class LoaderManager {
 
     private static final Object instanceGetterLock = new Object();
 
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
 
     public static LoaderManager getInstance() {
         if (instance == null) {

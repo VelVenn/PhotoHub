@@ -130,7 +130,7 @@ public class ViewController implements Closeable {
     private ViewProperty viewProperty;
     private Timeline slideShowTimeline;
 
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
 
     private ViewController() {
         this.loader = null;

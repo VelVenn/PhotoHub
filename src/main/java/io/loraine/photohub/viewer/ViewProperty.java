@@ -59,7 +59,7 @@ public class ViewProperty implements Closeable {
     private final BooleanProperty isScanDone = new SimpleBooleanProperty(this, "isScanDone", false);
 
     private final PhotoLoader loader;
-    private final Boolean DEBUG = true;
+    private final Boolean DEBUG = false;
 
     public ViewProperty(PhotoLoader photoLoader, Photo photo) throws IOException {
         if (photoLoader == null || photo == null) {

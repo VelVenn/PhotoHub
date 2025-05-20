@@ -64,6 +64,8 @@ public class FileManagerController {
     @FXML
     private SplitPane mainSplitPane;
 
+    private static final boolean DEBUG = false;
+
     @FXML
     private void pasteButtonHandler() {
         if (App.clipboard.isEmpty()) {
@@ -524,7 +526,7 @@ public class FileManagerController {
                 try {
                     var viewStage = Viewers.createViewerStage(path);
                     viewStage.show();
-                    Logger.logErr("Stage show: " + viewStage.isShowing() + " - " + path);
+                    if (DEBUG) Logger.logErr("Stage show: " + viewStage.isShowing() + " - " + path);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }

@@ -35,7 +35,7 @@ public class Viewers {
     private Viewers() {
     }
 
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
 
     /**
      * 创建一个完整可用的{@code Photoview Pane}和与其绑定的控制器
@@ -43,13 +43,13 @@ public class Viewers {
      * @param photoPath 初始照片路径
      * @param loader    照片加载器
      *
-     * @return {@code javafx.util.Pair<ViewController, Parent>} 包含控制器和{@code Parent}的对象
+     * @return {@code javafx.util.Pair<ViewController, Parent>}
+     *         包含控制器和{@code Parent}的对象
      *
      * @throws IOException 如果加载FXML文件或者构建控制器失败时抛出
      */
     public static Pair<ViewController, Parent> createViewerPane(Path photoPath, PhotoLoader loader) throws IOException {
-        FXMLLoader fLoader =
-                new FXMLLoader(Viewers.class.getResource("/io/loraine/photohub/FXML/PhotoView.fxml"));
+        FXMLLoader fLoader = new FXMLLoader(Viewers.class.getResource("/io/loraine/photohub/FXML/PhotoView.fxml"));
 
         ViewController vc = new ViewController(photoPath, loader);
         fLoader.setController(vc);
@@ -66,8 +66,7 @@ public class Viewers {
      * @throws IOException 如果加载FXML文件失败时抛出
      */
     public static Parent createSkeletonViewerPane() throws IOException {
-        FXMLLoader fLoader =
-                new FXMLLoader(Viewers.class.getResource("/io/loraine/photohub/FXML/PhotoView.fxml"));
+        FXMLLoader fLoader = new FXMLLoader(Viewers.class.getResource("/io/loraine/photohub/FXML/PhotoView.fxml"));
 
         return fLoader.load();
     }
@@ -78,13 +77,13 @@ public class Viewers {
      * @param photoPath 初始照片路径
      * @param loader    照片加载器
      *
-     * @return {@code javafx.util.Pair<ViewController, Scene>} 包含控制器和{@code Scene}的对象
+     * @return {@code javafx.util.Pair<ViewController, Scene>}
+     *         包含控制器和{@code Scene}的对象
      *
      * @throws IOException 如果加载FXML文件或者构建控制器失败时抛出
      */
     public static Pair<ViewController, Scene> createViewerScene(Path photoPath, PhotoLoader loader) throws IOException {
-        FXMLLoader fLoader =
-                new FXMLLoader(Viewers.class.getResource("/io/loraine/photohub/FXML/PhotoView.fxml"));
+        FXMLLoader fLoader = new FXMLLoader(Viewers.class.getResource("/io/loraine/photohub/FXML/PhotoView.fxml"));
 
         ViewController vc = new ViewController(photoPath, loader);
         fLoader.setController(vc);
@@ -103,8 +102,7 @@ public class Viewers {
      * @throws IOException 如果加载FXML文件失败时抛出
      */
     public static Scene createSkeletonViewerScene() throws IOException {
-        FXMLLoader fLoader =
-                new FXMLLoader(Viewers.class.getResource("/io/loraine/photohub/FXML/PhotoView.fxml"));
+        FXMLLoader fLoader = new FXMLLoader(Viewers.class.getResource("/io/loraine/photohub/FXML/PhotoView.fxml"));
 
         Parent root = fLoader.load();
         return new Scene(root);
@@ -116,13 +114,13 @@ public class Viewers {
      * @param photoPath 初始照片路径
      * @param loader    照片加载器
      *
-     * @return {@code javafx.util.Pair<ViewController, Stage>} 包含控制器和{@code Stage}的对象
+     * @return {@code javafx.util.Pair<ViewController, Stage>}
+     *         包含控制器和{@code Stage}的对象
      *
      * @throws IOException 如果加载FXML文件或者构建控制器失败时抛出
      */
     public static Pair<ViewController, Stage> createViewerStage(Path photoPath, PhotoLoader loader) throws IOException {
-        FXMLLoader fLoader =
-                new FXMLLoader(Viewers.class.getResource("/io/loraine/photohub/FXML/PhotoView.fxml"));
+        FXMLLoader fLoader = new FXMLLoader(Viewers.class.getResource("/io/loraine/photohub/FXML/PhotoView.fxml"));
 
         ViewController vc = new ViewController(photoPath, loader);
         fLoader.setController(vc);
@@ -140,8 +138,7 @@ public class Viewers {
     }
 
     public static Stage createViewerStage(Path photoPath) throws IOException {
-        FXMLLoader fLoader =
-                new FXMLLoader(Viewers.class.getResource("/io/loraine/photohub/FXML/PhotoView.fxml"));
+        FXMLLoader fLoader = new FXMLLoader(Viewers.class.getResource("/io/loraine/photohub/FXML/PhotoView.fxml"));
 
         Path parentPath = photoPath.getParent();
 
@@ -155,7 +152,8 @@ public class Viewers {
         Stage stage = new Stage();
         stage.setScene(scene);
         stage.setOnCloseRequest(event -> {
-            if (DEBUG) Logger.logErr("View Stage closed which is open by: " + photoPath);
+            if (DEBUG)
+                Logger.logErr("View Stage closed which is open by: " + photoPath);
             LoaderManager.getInstance().release(parentPath);
             stage.titleProperty().unbind();
             vc.close();

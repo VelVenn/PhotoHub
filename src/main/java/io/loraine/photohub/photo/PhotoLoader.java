@@ -60,7 +60,7 @@ public class PhotoLoader implements Closeable {
 
     private int timeOut = Integer.MAX_VALUE;
 
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
 
     /**
      * Default constructor, setting the image cache to max 200MiB

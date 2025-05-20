@@ -41,7 +41,7 @@ public class Photos {
     }
 
     private static final Set<String> SUPPORTED_TYPES;
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
 
     static {
         String[] suffixes = ImageIO.getReaderFileSuffixes();
