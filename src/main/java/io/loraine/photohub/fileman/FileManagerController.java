@@ -354,6 +354,13 @@ public class FileManagerController {
         // 设置缩略图
         icon.setPreserveRatio(true);
         icon.setImage(loadIcon(file));
+        if (App.showThumbnail && App.betterThumbnail && !file.isDirectory()) {
+            try {
+                ThumbnailLoader.loadThumbnailAsync(file.toURI().toURL().toString(), icon);
+            } catch (MalformedURLException e) {
+                throw new RuntimeException(e);
+            }
+        }
 
         Label fileNameLabel = new Label(file.getName());
         fileNameLabel.setMaxWidth(95);
@@ -484,28 +491,33 @@ public class FileManagerController {
             }
 
             if (App.betterThumbnail) {
-                // 加载原始图片
-                Image originalImage = null;
-                try {
-                    originalImage = new Image(file.toURI().toURL().toString());
-                } catch (MalformedURLException e) {
-                    throw new RuntimeException(e);
-                }
+//                // 加载原始图片
+//                Image originalImage = null;
+//                try {
+//                    originalImage = new Image(file.toURI().toURL().toString());
+//                } catch (MalformedURLException e) {
+//                    throw new RuntimeException(e);
+//                }
+//
+//                // 计算缩放比例
+//                double widthRatio = 80.0 / originalImage.getWidth();
+//                double heightRatio = 80.0 / originalImage.getHeight();
+//                double scale = Math.min(widthRatio, heightRatio);
+//
+//                // 生成缩略图
+//                double w = (originalImage.getWidth() * scale);
+//                double h = (originalImage.getHeight() * scale);
+//                try {
+//                    return new Image(file.toURI().toURL().toString(), w, h, true, true);
+//                } catch (MalformedURLException e) {
+//                    throw new RuntimeException(e);
+//                }
 
-                // 计算缩放比例
-                double widthRatio = 80.0 / originalImage.getWidth();
-                double heightRatio = 80.0 / originalImage.getHeight();
-                double scale = Math.min(widthRatio, heightRatio);
-
-                // 生成缩略图
-                double w = (originalImage.getWidth() * scale);
-                double h = (originalImage.getHeight() * scale);
-//                System.out.println("w" + w);
-//                System.out.println("h" + h);
                 try {
-                    return new Image(file.toURI().toURL().toString(), w, h, true, true);
-                } catch (MalformedURLException e) {
-                    throw new RuntimeException(e);
+                    var iconURL = Objects.requireNonNull(getClass().getResource("/io/loraine/photohub/Default_Resources/file.png"));
+                    return new Image(iconURL.toString());
+                } catch (Exception e1) {
+                    throw new RuntimeException(e1);
                 }
 
             } else {
