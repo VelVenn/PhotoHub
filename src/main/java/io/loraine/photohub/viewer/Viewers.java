@@ -42,11 +42,9 @@ public class Viewers {
      *
      * @param photoPath 初始照片路径
      * @param loader    照片加载器
-     *
      * @return {@code javafx.util.Pair<ViewController, Parent>}
-     *         包含控制器和{@code Parent}的对象
-     *
-     * @throws IOException 如果加载FXML文件或者构建控制器失败时抛出
+     * 包含控制器和{@code Parent}的对象
+     * @throws IOException 加载FXML文件或者构建控制器失败时抛出
      */
     public static Pair<ViewController, Parent> createViewerPane(Path photoPath, PhotoLoader loader) throws IOException {
         FXMLLoader fLoader = new FXMLLoader(Viewers.class.getResource("/io/loraine/photohub/FXML/PhotoView.fxml"));
@@ -62,8 +60,7 @@ public class Viewers {
      * 创建一个不绑定控制器的{@code Photoview Pane}
      *
      * @return {@code Parent} 无控制器的{@code Photoview Pane}
-     *
-     * @throws IOException 如果加载FXML文件失败时抛出
+     * @throws IOException 加载FXML文件失败时抛出
      */
     public static Parent createSkeletonViewerPane() throws IOException {
         FXMLLoader fLoader = new FXMLLoader(Viewers.class.getResource("/io/loraine/photohub/FXML/PhotoView.fxml"));
@@ -76,11 +73,9 @@ public class Viewers {
      *
      * @param photoPath 初始照片路径
      * @param loader    照片加载器
-     *
      * @return {@code javafx.util.Pair<ViewController, Scene>}
-     *         包含控制器和{@code Scene}的对象
-     *
-     * @throws IOException 如果加载FXML文件或者构建控制器失败时抛出
+     * 包含控制器和{@code Scene}的对象
+     * @throws IOException 加载FXML文件或者构建控制器失败时抛出
      */
     public static Pair<ViewController, Scene> createViewerScene(Path photoPath, PhotoLoader loader) throws IOException {
         FXMLLoader fLoader = new FXMLLoader(Viewers.class.getResource("/io/loraine/photohub/FXML/PhotoView.fxml"));
@@ -98,8 +93,7 @@ public class Viewers {
      * 创建一个{@code Photoview Scene}，其根节点为{@code Photoview Pane}，但不绑定控制器
      *
      * @return {@code Scene} 无控制器的{@code Photoview Scene}
-     *
-     * @throws IOException 如果加载FXML文件失败时抛出
+     * @throws IOException 加载FXML文件失败时抛出
      */
     public static Scene createSkeletonViewerScene() throws IOException {
         FXMLLoader fLoader = new FXMLLoader(Viewers.class.getResource("/io/loraine/photohub/FXML/PhotoView.fxml"));
@@ -113,11 +107,9 @@ public class Viewers {
      *
      * @param photoPath 初始照片路径
      * @param loader    照片加载器
-     *
      * @return {@code javafx.util.Pair<ViewController, Stage>}
-     *         包含控制器和{@code Stage}的对象
-     *
-     * @throws IOException 如果加载FXML文件或者构建控制器失败时抛出
+     * 包含控制器和{@code Stage}的对象
+     * @throws IOException 加载FXML文件或者构建控制器失败时抛出
      */
     public static Pair<ViewController, Stage> createViewerStage(Path photoPath, PhotoLoader loader) throws IOException {
         FXMLLoader fLoader = new FXMLLoader(Viewers.class.getResource("/io/loraine/photohub/FXML/PhotoView.fxml"));
@@ -137,6 +129,15 @@ public class Viewers {
         return new Pair<>(vc, stage);
     }
 
+    /**
+     * 创建一个完整可用的{@code Photoview Stage}和与其根布局{@code Photoview Pane}绑定的控制器。
+     * <p>
+     * 该方法会自动维护返回的{@code Photoview Stage}的生命周期。
+     *
+     * @param photoPath 初始照片路径
+     * @return {@code Stage} 对象
+     * @throws IOException 加载FXML文件或者构建控制器失败时抛出
+     */
     public static Stage createViewerStage(Path photoPath) throws IOException {
         FXMLLoader fLoader = new FXMLLoader(Viewers.class.getResource("/io/loraine/photohub/FXML/PhotoView.fxml"));
 
