@@ -1,0 +1,19 @@
+/* 设置页面的背景颜色 */
+.root {
+    -fx-background-color: #ebf4f7;
+}
+
+/* VBox 的样式 */
+.vbox-container {
+    -fx-padding: 20px; /* 内边距 */
+    -fx-spacing: 20px; /* 子组件之间的间距 */
+    -fx-alignment: top-center; /* 子组件顶部居中对齐 */
+    -fx-background-color: #ebf4f7;
+}
+
+/* ToggleSwitch 的样式 */
+.toggle-switch .thumb {
+    -fx-background-color: white; /* 开关滑块的颜色 */
+    -fx-border-color: #cccccc; /* 开关滑块的边框颜色 */
+    -fx-border-radius: 50%; /* 圆形滑块 */
+}

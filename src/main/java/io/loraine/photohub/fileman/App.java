@@ -24,6 +24,8 @@ import java.util.List;
 
 public class App {
     static List<File> clipboard = new ArrayList<>();
+    static boolean showFolder = false;
+    static boolean showThumbnail = true;
 
     public static String getFileExtension(String fileName) {
         if (fileName == null || fileName.isEmpty()) {

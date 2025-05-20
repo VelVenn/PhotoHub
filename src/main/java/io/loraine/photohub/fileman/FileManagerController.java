@@ -18,6 +18,7 @@
 
 package io.loraine.photohub.fileman;
 
+import io.loraine.photohub.photo.Photo;
 import io.loraine.photohub.photo.Photos;
 import io.loraine.photohub.util.Logger;
 import io.loraine.photohub.viewer.Viewers;
@@ -90,6 +91,10 @@ public class FileManagerController {
     @FXML
     private void handleSelectAll() {
         for (var item : allFileBoxes) {
+            var file = (File) (item.getUserData());
+            if (file.isDirectory()) {
+                continue;
+            }
             selectItem(item);
         }
     }
@@ -270,28 +275,47 @@ public class FileManagerController {
         };
     }
 
-    // 显示文件到TilePane
+    // 显示文件到右侧面板
     private void showFilesInTilePane(File directory) {
         clearTilePane();
 
         File[] files = directory.listFiles();
         if (files == null) return;
-        Arrays.sort(files, Comparator.comparing(File::getName));
+//        Arrays.sort(files, Comparator.comparing(File::getName));
+        Arrays.sort(files, (f1, f2) -> {
+            // 优先按是否是文件夹排序：文件夹排在前面
+            if (f1.isDirectory() && !f2.isDirectory()) {
+                return -1; // f1 是文件夹，f2 不是文件夹，f1 排在前面
+            } else if (!f1.isDirectory() && f2.isDirectory()) {
+                return 1; // f1 不是文件夹，f2 是文件夹，f2 排在前面
+            } else {
+                // 如果都是文件或都是文件夹，则按文件名排序
+                return f1.getName().compareTo(f2.getName());
+            }
+        });
+
         fileTilePane.setPrefColumns(-1); // 禁用初始列数设置
 
         int fileCount = 0;
         double fileSize = 0;
         for (File file : files) {
-            if (file.isDirectory()) continue;
-            fileCount++;
-            fileSize += file.length() / (1024.0 * 1024.0);
-            VBox fileBox = createFileItem(file);
-            fileTilePane.getChildren().add(fileBox);
-            allFileBoxes.add(fileBox);
+            if (!Photos.isValidPhoto(Paths.get(file.getAbsolutePath()))) {
+                if (file.isDirectory() && App.showFolder) {
+                    VBox fileBox = createFileItem(file);
+                    fileTilePane.getChildren().add(fileBox);
+                    allFileBoxes.add(fileBox);
+                }
+            } else {
+                fileCount++;
+                fileSize += file.length() / (1024.0 * 1024.0);
+                VBox fileBox = createFileItem(file);
+                fileTilePane.getChildren().add(fileBox);
+                allFileBoxes.add(fileBox);
+            }
         }
 
         locationLabel.setText(directory.getAbsolutePath());
-        pathStatisticLabel.setText(String.format("共有 %d 个文件, 总大小 %.2f MB", fileCount, fileSize));
+        pathStatisticLabel.setText(String.format("共有 %d 张图片, 总大小 %.2f MB", fileCount, fileSize));
 
         Platform.runLater(() -> {
             updateTilePaneColumns();
@@ -311,12 +335,15 @@ public class FileManagerController {
         ImageView icon = new ImageView();
         icon.setFitWidth(40);
         icon.setFitHeight(40);
-        icon.setImage(loadIcon(file.isDirectory()));
+
+        // 设置缩略图
+        icon.setImage(loadIcon(file));
 
         Label fileNameLabel = new Label(file.getName());
         fileNameLabel.setMaxWidth(95);
         fileNameLabel.setWrapText(true);
         fileNameLabel.setAlignment(Pos.CENTER);
+        fileNameLabel.getStyleClass().add("file-label");
 
         fileBox.getChildren().addAll(icon, fileNameLabel);
         fileBox.setUserData(file);
@@ -402,33 +429,58 @@ public class FileManagerController {
                 deleteMenuItem
         );
 
-        // 绑定右键菜单到文件项
-        fileBox.setOnContextMenuRequested(event -> {
-            if (!selectedItems.contains(fileBox)) {
-                clearSelection();
-                selectItem(fileBox);
-            }
-            contextMenu.show(fileBox, event.getScreenX(), event.getScreenY());
-            event.consume(); // 阻止默认行为
-        });
-
+        if (!file.isDirectory()) {
+            // 绑定右键菜单到文件项
+            fileBox.setOnContextMenuRequested(event -> {
+                if (!selectedItems.contains(fileBox)) {
+                    clearSelection();
+                    selectItem(fileBox);
+                }
+                contextMenu.show(fileBox, event.getScreenX(), event.getScreenY());
+                event.consume(); // 阻止默认行为
+            });
+        }
 
         return fileBox;
     }
 
-    // 加载图标
-    // TODO 为什么只显示文件图标？
-    private Image loadIcon(boolean isDirectory) {
-        String iconType = isDirectory ? "folder.png"
-                : "file.png";
-        String iconPath = "/io/loraine/photohub/Default_Resources/" + iconType;
+    // 显示缩略图
+    private Image loadIcon(File file) {
 
-        try {
-            var iconURL = Objects.requireNonNull(getClass().getResource(iconPath));
-            return new Image(iconURL.toString());
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        if (file.isDirectory()) {
+            // 直接显示文件夹图标
+            try {
+                var iconURL = Objects.requireNonNull(getClass().getResource("/io/loraine/photohub/Default_Resources/folder.png"));
+                return new Image(iconURL.toString());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            // 加载实际文件(缩略图)后显示
+
+            if (!App.showThumbnail) {
+                try {
+                    var iconURL = Objects.requireNonNull(getClass().getResource("/io/loraine/photohub/Default_Resources/file.png"));
+                    return new Image(iconURL.toString());
+                } catch (Exception e1) {
+                    throw new RuntimeException(e1);
+                }
+            }
+
+            try {
+                return new Image(file.toURI().toURL().toString());
+            } catch (Exception e) {
+                // 如果加载失败, 则显示默认图片图标
+                try {
+                    var iconURL = Objects.requireNonNull(getClass().getResource("/io/loraine/photohub/Default_Resources/file.png"));
+                    return new Image(iconURL.toString());
+                } catch (Exception e1) {
+                    throw new RuntimeException(e1);
+                }
+            }
+
         }
+
     }
 
     // 更新TilePane列数
@@ -531,9 +583,18 @@ public class FileManagerController {
                     throw new RuntimeException(e);
                 }
             } else {
-                System.err.println("Not a photo: " + path);
+//                System.err.println("Not a photo: " + path);
+                var file = (File) (fileBox.getUserData());
+                if (file.isDirectory()) {
+                    showFilesInTilePane(file);
+                }
             }
 
+            return;
+        }
+
+        var file = (File) (fileBox.getUserData());
+        if (file.isDirectory()) {
             return;
         }
 
