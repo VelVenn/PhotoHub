@@ -483,6 +483,21 @@ public class PhotoLoader implements Closeable {
         return photoPaths == null ? 0 : photoPaths.size();
     }
 
+    /**
+     * 获取当前目录下所有已索引的图片列表的快照。
+     * <p>
+     * 返回的列表是不可变的，仅在目录扫描 ({@link #scanPath(Path)}/{@link #scanPathAsync(Path)})
+     * 完成后可用。
+     * <p>
+     * <b>注意：</b>此方法返回的列表顺序与索引一致，但直接遍历此列表进行图片访问
+     * 可能导致并发一致性问题或性能下降。推荐优先使用
+     * {@link #getPhotoIndex(Photo)} 获取图片索引，
+     * 或 {@link #getPhotoByIndex(int)} 通过索引访问图片，以获得更好的健壮性和性能。
+     *
+     * @return 当前目录下所有图片的不可变列表，若尚未扫描完成则返回 {@code null}
+     * @see #getPhotoIndex(Photo)
+     * @see #getPhotoByIndex(int)
+     */
     public List<Photo> getPhotoPaths() {
         if (!isScanDone) {
             return null;
@@ -512,7 +527,7 @@ public class PhotoLoader implements Closeable {
     }
 
     public Path getDirPath() {
-        return dirPath;
+        return dirPath.normalize().toAbsolutePath();
     }
 
     /**

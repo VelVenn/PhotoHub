@@ -27,7 +27,6 @@ import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
 import java.nio.file.Path;
-import java.util.List;
 
 public class ThumbTest extends Application {
     @Override
@@ -36,12 +35,11 @@ public class ThumbTest extends Application {
         ThumbLoader loader = new ThumbLoader(200, 120, 20, 4, 90);
         loader.scanPath(dir);
 
-        List<Photo> photos = loader.getPhotoPaths();
-        if (photos == null || photos.isEmpty()) {
+        if (!loader.isIndexBasedUsable()) {
             throw new RuntimeException("No photos found in dir: " + dir);
         }
 
-        Photo photo = photos.get(6); // choose the first photo or use get(n) for others
+        Photo photo = loader.getPhotoByIndex(0); // choose the first photo or use get(n) for others
         ImageView view = new ImageView(loader.loadPhotoAsync(photo).get());
         view.setPreserveRatio(true);
         view.setFitWidth(200);
