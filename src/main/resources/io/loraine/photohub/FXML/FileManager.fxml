@@ -41,8 +41,11 @@
             <!-- 添加伸缩空间 -->
             <Region HBox.hgrow="ALWAYS" />
 
-            <!-- 添加按钮 -->
-<!--            <Button onAction="#pasteButtonHandler" styleClass="top-button" text="粘贴" />-->
+            <Button onAction="#refreshButtonHandler" styleClass="top-button">
+                <graphic>
+                    <FontIcon iconLiteral="mdmz-refresh" iconSize="24" />
+                </graphic>
+            </Button>
             <Button onAction="#pasteButtonHandler" styleClass="top-button">
                 <graphic>
                     <FontIcon iconLiteral="mdral-content_paste" iconSize="24" />

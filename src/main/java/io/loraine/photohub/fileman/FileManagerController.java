@@ -27,6 +27,7 @@ import io.loraine.photohub.viewer.Viewers;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Bounds;
 import javafx.geometry.Pos;
@@ -42,6 +43,7 @@ import javafx.scene.shape.Rectangle;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -114,6 +116,19 @@ public class FileManagerController {
     @FXML
     private void handleCancelSelection() {
         clearSelection();
+    }
+
+    @FXML
+    public void refreshButtonHandler() {
+        if (rightTabPane.getSelectionModel().getSelectedIndex() == 1) {
+            rightTabPane.getSelectionModel().select(0);
+        }
+        TreeItem<File> selectedItem = fileTree.getSelectionModel().getSelectedItem();
+        if (selectedItem != null) {
+            if (fileTree.getSelectionModel().getSelectedItems().contains(selectedItem)) {
+                showFilesInTilePane(selectedItem.getValue());
+            }
+        }
     }
 
     @FXML
@@ -193,7 +208,7 @@ public class FileManagerController {
             if (root.isDirectory()) rootItem.getChildren().add(createNode(root));
         }
 
-        fileTree.setOnMouseClicked(mouseEvent -> {
+        fileTree.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
             // 如果打开了设置页面就把它关了
             if (rightTabPane.getSelectionModel().getSelectedIndex() == 1) {
                 rightTabPane.getSelectionModel().select(0);
@@ -279,7 +294,6 @@ public class FileManagerController {
     // 显示文件到右侧面板
     private void showFilesInTilePane(File directory) {
         clearTilePane();
-
         File[] files = directory.listFiles();
         if (files == null) return;
 //        Arrays.sort(files, Comparator.comparing(File::getName));
@@ -338,6 +352,7 @@ public class FileManagerController {
         icon.setFitHeight(40);
 
         // 设置缩略图
+        icon.setPreserveRatio(true);
         icon.setImage(loadIcon(file));
 
         Label fileNameLabel = new Label(file.getName());
@@ -452,14 +467,14 @@ public class FileManagerController {
             // 直接显示文件夹图标
             try {
                 var iconURL = Objects.requireNonNull(getClass().getResource("/io/loraine/photohub/Default_Resources/folder.png"));
-                return new Image(iconURL.toString());
+                return new Image(iconURL.toString(), true);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         } else {
-            // 加载实际文件(缩略图)后显示
 
             if (!App.showThumbnail) {
+                // 直接显示占位图, 不加载缩略图
                 try {
                     var iconURL = Objects.requireNonNull(getClass().getResource("/io/loraine/photohub/Default_Resources/file.png"));
                     return new Image(iconURL.toString());
@@ -468,18 +483,45 @@ public class FileManagerController {
                 }
             }
 
-            try {
-                return new Image(file.toURI().toURL().toString());
-            } catch (Exception e) {
-                // 如果加载失败, 则显示默认图片图标
+            if (App.betterThumbnail) {
+                // 加载原始图片
+                Image originalImage = null;
                 try {
-                    var iconURL = Objects.requireNonNull(getClass().getResource("/io/loraine/photohub/Default_Resources/file.png"));
-                    return new Image(iconURL.toString());
-                } catch (Exception e1) {
-                    throw new RuntimeException(e1);
+                    originalImage = new Image(file.toURI().toURL().toString());
+                } catch (MalformedURLException e) {
+                    throw new RuntimeException(e);
+                }
+
+                // 计算缩放比例
+                double widthRatio = 100.0 / originalImage.getWidth();
+                double heightRatio = 100.0 / originalImage.getHeight();
+                double scale = Math.min(widthRatio, heightRatio);
+
+                // 生成缩略图
+                double w = (originalImage.getWidth() * scale);
+                double h = (originalImage.getHeight() * scale);
+//                System.out.println("w" + w);
+//                System.out.println("h" + h);
+                try {
+                    return new Image(file.toURI().toURL().toString(), w, h, true, true);
+                } catch (MalformedURLException e) {
+                    throw new RuntimeException(e);
+                }
+
+            } else {
+                // 使用 Image 直接加载原图, 如果加载失败再加载占位图
+                try {
+                    return new Image(file.toURI().toURL().toString(), true);
+                } catch (Exception e) {
+                    // 如果加载失败, 则显示默认图片图标
+                    try {
+                        var iconURL = Objects.requireNonNull(getClass().getResource("/io/loraine/photohub/Default_Resources/file.png"));
+                        return new Image(iconURL.toString());
+                    } catch (Exception e1) {
+                        throw new RuntimeException(e1);
+                    }
                 }
             }
-
         }
 
     }
