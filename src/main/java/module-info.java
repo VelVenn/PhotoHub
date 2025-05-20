@@ -23,6 +23,7 @@ module io.loraine.photohub {
     exports io.loraine.photohub.demo;
     exports io.loraine.photohub.main;
     exports io.loraine.photohub.photo;
+    exports io.loraine.photohub.photo.thumb;
     exports io.loraine.photohub.viewer;
     exports io.loraine.photohub.fileman;
 }

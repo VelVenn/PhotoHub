@@ -108,6 +108,23 @@ public class PhotoLoader implements Closeable {
     }
 
     /**
+     * Constructor which set the maximum photo amount that can be cached,
+     * the size of the fixed thread pool and cache's expiration time
+     *
+     * @param cacheSize    the maximum size of the cache in number of photos
+     * @param executorSize the size of the executor thread pool
+     * @param expire       the expiration time of the cache in seconds
+     */
+    public PhotoLoader(int cacheSize, int executorSize, int expire) {
+        cache = Caffeine.newBuilder()
+                .initialCapacity(10)
+                .maximumSize(cacheSize)
+                .expireAfterAccess(expire, TimeUnit.SECONDS)
+                .build();
+        executor = Executors.newFixedThreadPool(executorSize);
+    }
+
+    /**
      * Constructor which set the maximum memory usage of the cache.
      * <p>
      * Use the fixed thread pool, whose size is determined by the number of
@@ -155,6 +172,16 @@ public class PhotoLoader implements Closeable {
         executor = Executors.newFixedThreadPool(executorSize);
     }
 
+    /**
+     * Constructor which set the maximum memory usage of the cache,
+     * the size of the fixed thread pool, cache's expiration time,
+     * and the timeout for loading images.
+     *
+     * @param cacheWeight  the maximum weight of the cache in bytes
+     * @param executorSize the size of the executor thread pool
+     * @param expire       the expiration time of the cache in seconds
+     * @param timeOut      the timeout for loading images in seconds
+     */
     public PhotoLoader(long cacheWeight, int executorSize, int expire, int timeOut) {
         cache = Caffeine.newBuilder()
                 .initialCapacity(10)
@@ -400,7 +427,7 @@ public class PhotoLoader implements Closeable {
         });
     }
 
-    private Image render(Photo photo) throws IOException {
+    protected Image render(Photo photo) throws IOException {
         if (photo == null) {
             throw new NullPointerException("Photo cannot be null.");
         }
