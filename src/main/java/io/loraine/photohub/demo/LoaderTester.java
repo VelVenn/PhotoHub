@@ -1,6 +1,6 @@
 /**
  * Photohub ---- To View Some S3xy Photos
- * Copyright (C) 2025 Loraine, Yui
+ * Copyright (C) 2025 Loraine K. Cheung
  * <p>
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -279,5 +279,18 @@ class Utils {
         System.out.println(
                 thread.getName() + "\t|\t" + thread.threadId() + "\t|\t" + System.currentTimeMillis() % 1000
         );
+    }
+}
+
+class pathTest {
+    public static void foo (Path path) {
+        path = path.normalize().toAbsolutePath();
+        System.out.println("Path: " + path);
+    }
+
+    public static void main(String[] args) {
+        Path path = Paths.get("a/../b");
+        foo(path);
+        System.out.println("Path: " + path);
     }
 }
