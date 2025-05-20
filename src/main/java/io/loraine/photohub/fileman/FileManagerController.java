@@ -348,8 +348,8 @@ public class FileManagerController {
         fileBox.setMaxSize(100, 120);
 
         ImageView icon = new ImageView();
-        icon.setFitWidth(40);
-        icon.setFitHeight(40);
+        icon.setFitWidth(80);
+        icon.setFitHeight(80);
 
         // 设置缩略图
         icon.setPreserveRatio(true);
@@ -493,8 +493,8 @@ public class FileManagerController {
                 }
 
                 // 计算缩放比例
-                double widthRatio = 100.0 / originalImage.getWidth();
-                double heightRatio = 100.0 / originalImage.getHeight();
+                double widthRatio = 80.0 / originalImage.getWidth();
+                double heightRatio = 80.0 / originalImage.getHeight();
                 double scale = Math.min(widthRatio, heightRatio);
 
                 // 生成缩略图

@@ -33,7 +33,7 @@
             </padding>
 <!--            <Label fx:id="pathLabel" text="请选择一个文件夹" />-->
             <VBox spacing="2">
-                <Label fx:id="locationLabel" text="请选择一个文件夹" />
+                <Label fx:id="locationLabel" text="请选择一个文件夹" style="-fx-font-weight: bold; -fx-font-size: 16px;"/>
                 <Label fx:id="pathStatisticLabel" text="以显示统计信息" />
             </VBox>
 
@@ -71,7 +71,6 @@
     </top>
 
     <center>
-
         <SplitPane fx:id="mainSplitPane" dividerPositions="0.5" styleClass="no-border-splitpane">
             <!-- 左侧树视图（固定宽度） -->
             <TreeView fx:id="fileTree">
