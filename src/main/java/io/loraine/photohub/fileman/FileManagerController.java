@@ -89,6 +89,8 @@ public class FileManagerController {
         }
         var curPath = locationLabel.getText();
         for (var src : App.clipboard) {
+            if (!src.exists()) continue;
+
             StringBuilder name = new StringBuilder(src.getName());
 
             while ((new File(curPath + '/' + name)).exists()) {
@@ -438,7 +440,13 @@ public class FileManagerController {
                 if (selectedItems.size() == 1) {
                     var newPath = parentPath + "/" + newFileName;
                     var ext = App.getFileExtension(file.getName());
-                    System.out.println(newPath + ext);
+
+                    StringBuilder newFileNameBuilder = new StringBuilder(newFileName);
+                    while ((new File(newPath + ext)).exists()) {
+                        newFileNameBuilder.insert(0, "(new)");
+                        newPath = parentPath + "/" + newFileNameBuilder;
+                    }
+
                     file.renameTo(new File(newPath + ext));
                 } else {
                     int id = 1;
@@ -446,7 +454,14 @@ public class FileManagerController {
                         File fileItem = (File) item.getUserData();
                         var newPath = parentPath + "/" + newFileName;
                         var ext = App.getFileExtension(fileItem.getName());
-                        fileItem.renameTo(new File(newPath + "." + id + ext));
+
+                        StringBuilder newFileNameBuilder = new StringBuilder(newFileName);
+                        while ((new File(newPath + "-" + id + ext)).exists()) {
+                            newFileNameBuilder.insert(0, "(new)");
+                            newPath = parentPath + "/" + newFileNameBuilder;
+                        }
+
+                        fileItem.renameTo(new File(newPath + "-" + id + ext));
                         id++;
                     }
                 }
@@ -456,6 +471,7 @@ public class FileManagerController {
         });
         MenuItem copyMenuItem = new MenuItem("复制");
         copyMenuItem.setOnAction(event -> {
+            App.clipboard.clear();
             for (var item : selectedItems) {
                 App.clipboard.add((File) (item.getUserData()));
             }
