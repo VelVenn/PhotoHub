@@ -73,7 +73,7 @@ public class FileManagerController {
     private Tab settingsTab; // 绑定到设置页面的 Tab
 
 
-    private ThumbLoader thumbLoader = new ThumbLoader(80,80,200,8,120);
+    private ThumbLoader thumbLoader = new ThumbLoader(80, 80, 200, 8, 120);
     private double lastManualPosition = -1; // 记录用户手动调整的位置
     private double dragStartX, dragStartY;
     private final List<VBox> selectedItems = new ArrayList<>();
@@ -89,11 +89,13 @@ public class FileManagerController {
         }
         var curPath = locationLabel.getText();
         for (var src : App.clipboard) {
-            var name = src.getName();
-            var dst = new File(curPath + '/' + name);
-            if (dst.exists()) {
-                dst = new File(curPath + '/' + "[new]" + name);
+            StringBuilder name = new StringBuilder(src.getName());
+
+            while ((new File(curPath + '/' + name)).exists()) {
+                name.insert(0, "(new)");
             }
+            var dst = new File(curPath + '/' + name);
+
             try {
                 Files.copy(Paths.get(src.getAbsolutePath()), Paths.get(dst.getAbsolutePath()), StandardCopyOption.REPLACE_EXISTING);
             } catch (IOException e) {
@@ -402,7 +404,10 @@ public class FileManagerController {
 
             alert.showAndWait().ifPresent(response -> {
                 if (response == ButtonType.OK) {
-                    file.delete();
+                    for (var item : selectedItems) {
+                        File fileItem = (File) item.getUserData();
+                        fileItem.delete();
+                    }
                     showFilesInTilePane(new File(locationLabel.getText()));
                 }
             });
@@ -441,8 +446,7 @@ public class FileManagerController {
                         File fileItem = (File) item.getUserData();
                         var newPath = parentPath + "/" + newFileName;
                         var ext = App.getFileExtension(fileItem.getName());
-                        System.out.println(newPath + "." + id + ext);
-                        file.renameTo(new File(newPath + "." + id + ext));
+                        fileItem.renameTo(new File(newPath + "." + id + ext));
                         id++;
                     }
                 }
