@@ -392,7 +392,7 @@ public class PhotoLoader implements Closeable {
 
     public CompletableFuture<Photo> loadPhotoMetadataAsync(Photo photo) {
         if (photo == null) {
-            throw new NullPointerException("Photo cannot be null.");
+            return CompletableFuture.failedFuture(new NullPointerException("Photo cannot be null."));
         }
 
         Photo realPhoto =
