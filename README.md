@@ -53,7 +53,7 @@ mvn clean javafx:run
 
 ## Screenshots
 
-###### <!--pictures below-->
+![](src\main\resources\io\loraine\photohub\Default_Resources\screenshot.png)
 
 ------
 
