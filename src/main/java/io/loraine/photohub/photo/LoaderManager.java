@@ -26,6 +26,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class LoaderManager {
     private volatile static LoaderManager instance;
+    // the static instance will stay alive at most of the time
+    // when it was created, unless set as null manually
+    // or the JVM is terminated
 
     private final Map<Path, LoaderReference> referenceMap = new ConcurrentHashMap<>();
 
