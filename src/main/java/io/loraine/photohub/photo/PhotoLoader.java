@@ -447,7 +447,7 @@ public class PhotoLoader implements Closeable {
 
         Image result;
         try {
-            BufferedImage bufferedImage = ImageIO.read(photo.getPath().toFile());
+            BufferedImage bufferedImage = ImageIO.read(photo.getPath().toFile()); // The webp images' color may bias due to TwelveMonkeys' bug
 
             if (bufferedImage == null) {
                 throw new IOException("Failed to load image: " + photo.getPath());
