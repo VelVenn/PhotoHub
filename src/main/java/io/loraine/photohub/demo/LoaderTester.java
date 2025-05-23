@@ -42,7 +42,7 @@ class ScanDirTest {
             PhotoLoader loader = new PhotoLoader();
 
             Path path = Paths.get(
-                    "D:\\KUN\\desktop\\Large Dir"); // Change this to your photo directory
+                    "your/photo/dir"); // Change this to your photo directory
 
             var future = loader.scanPathAsync(path);
             loader.scanPath(path);
@@ -187,8 +187,8 @@ class LoadPhotoTest {
 
 class preLoadTest {
     public static void main(String[] args) {
-        Path path = Paths.get("D:\\KUN\\desktop\\Large Dir"); // Change this to your photo directory
-        Path escalator = Paths.get("D:\\KUN\\desktop\\Large Dir\\0026_EH_A02_0401.png"); // Change this to your photo path
+        Path path = Paths.get("your/photo/dir"); // Change this to your photo directory
+        Path escalator = Paths.get("your/photo/dir/image.jpg"); // Change this to your photo path
 
         try (PhotoLoader loader = new PhotoLoader()) {
             var future = loader.scanPathAsync(path);
