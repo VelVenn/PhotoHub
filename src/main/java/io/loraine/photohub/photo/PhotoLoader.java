@@ -256,9 +256,11 @@ public class PhotoLoader implements Closeable {
             if (dirTask != null) {
                 return dirTask;
             }
-            // Avoid others acquired the lock at the same time ↑
-            // but done the task before this thread and cause  ↑
-            // repeated work.                                  ↑
+            // Double-check to avoid repeated work:
+            // Multiple threads may reach here and compete for the lock at the same time.
+            // The first thread will start the task; others, after acquiring the lock,
+            // must check again to avoid starting a duplicate task
+            // if the first one already finished.
 
             dirTask = CompletableFuture.runAsync(() -> {
                 if (DEBUG) {
