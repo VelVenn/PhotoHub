@@ -58,9 +58,9 @@
     </dependency>
 
     <dependency>
-        <groupId>org.kordamp.ikonli</groupId>
-        <artifactId>ikonli-material2-pack</artifactId>
-        <version>12.3.1</version>
+      <groupId>org.kordamp.ikonli</groupId>
+      <artifactId>ikonli-material2-pack</artifactId>
+      <version>12.3.1</version>
     </dependency>
 
     <dependency>
@@ -105,11 +105,19 @@
       <scope>runtime</scope>
     </dependency>
 
-    <dependency>
+    <!-- Have color bias, issues still exist since 2023, see issue #734 on its GitHub repository -->
+    <!-- <dependency>
       <groupId>com.twelvemonkeys.imageio</groupId>
       <artifactId>imageio-webp</artifactId>
       <version>3.12.0</version>
       <scope>runtime</scope>
+    </dependency> -->
+
+    <dependency>
+      <groupId>org.sejda.imageio</groupId>
+      <artifactId>webp-imageio</artifactId>
+      <version>0.1.6</version>  <!-- Have vulnerability from module's dependency : CVE-2020-15250 -->
+      <scope>runtime</scope>    <!-- Won't affect this project since it uses JUnit 5 instead of 4 -->
     </dependency>
 
     <dependency>
